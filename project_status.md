@@ -95,7 +95,7 @@ EXPIRED
 BLOCKED
 ```
 
-## Phase 1 — Foundation
+## Phase 1 — Foundation [Done]
 
 Tasks:
 
@@ -115,16 +115,15 @@ Status: Pending
 ## Phase 2 — Open Job System
 
 Tasks:
-
-* Create anonymous job API
-* Generate `jobId`
-* Generate private `jobToken`
-* Store job in PostgreSQL
-* Add job expiry time
-* Add job status API
-* Add job result API
-* Add audit log entry for each job action
-* Add basic IP-based rate limit
+* Create anonymous job API [Done]
+* Generate `jobId` [Done]
+* Generate private `jobToken` [Done]
+* Store job in PostgreSQL [Done]
+* Add job expiry time [Done]
+* Add job status API [Done]
+* Add job result API [Done]
+* Add audit log entry for each job action [Done]
+* Add basic IP-based rate limit [Done]
 
 Status: Pending
 
