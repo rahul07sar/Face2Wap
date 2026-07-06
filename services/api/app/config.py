@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     job_expiry_hours: int = 24
     rate_limit_window_seconds: int = 60
     rate_limit_max_requests: int = 20
+    storage_provider: str = "local"
+    local_upload_dir: str = "storage/uploads"
+    local_result_dir: str = "storage/results"
+    upload_url_expiry_minutes: int = 15
+    max_image_size_mb: int = 10
+    max_video_size_mb: int = 200
+    max_video_duration_seconds: int = 60
 
     class Config:
         env_file = ".env"

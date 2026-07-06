@@ -1,88 +1,172 @@
 # Face2Wap — Project Status
 
-1.[Done]
-2. [Todo]
-3. [In progress]
+Legend
+
+- ✅ Done
+- 🚧 In Progress
+- ⏳ Todo
+
+---
 
 ## Project Goal
 
-Face2Wap is an open, production-grade face swap tool using a Next.js UI, GCP hosting, Cloud Storage, queued GPU processing, and the `SocAIty/face2face` engine for both image and video face swap.
+Face2Wap is an open, production-grade face swap platform supporting both image and video face swapping using the SocAIty/face2face engine. The platform is designed to run locally during development while remaining cloud-ready for Google Cloud Platform deployment without architectural changes.
+
+---
 
 ## Product Type
 
-Open product, no user login for v1.
+Open product (v1)
 
-Access is based on anonymous job tracking:
+No authentication required.
 
-* `jobId`: public job identifier
-* `jobToken`: private access token for viewing result
+Anonymous jobs are identified using:
+
+- jobId (public identifier)
+- jobToken (private access token)
+
+---
 
 ## Core Stack
 
-* Frontend: Next.js
-* Backend API: FastAPI or Next.js API
-* Face Swap Engine: `SocAIty/face2face`
-* Video Processing: FFmpeg
-* Cloud: Google Cloud Platform
-* Storage: Google Cloud Storage
-* Queue: Cloud Tasks or Pub/Sub
-* Database: PostgreSQL
-* Worker: Python GPU worker
-* Deployment: Cloud Run, Compute Engine GPU, or GKE GPU
+Frontend
+- Next.js
+- TypeScript
+
+Backend
+- FastAPI
+
+AI Engine
+- SocAIty/face2face
+
+Video Processing
+- FFmpeg
+
+Database
+- PostgreSQL
+
+Worker
+- Python GPU Worker
+
+Storage
+- Local Storage (Development)
+- Google Cloud Storage (Production)
+
+Queue
+- Cloud Tasks / PubSub (Production)
+
+Deployment
+- Docker
+- Cloud Run
+- Compute Engine GPU
+- GKE GPU
+
+---
 
 ## High-Level Architecture
 
 ```txt
 Next.js UI
-  ↓
-API Service
-  ↓
-PostgreSQL Job Database
-  ↓
-Cloud Storage Signed Upload URLs
-  ↓
-Cloud Tasks / Pub/Sub Queue
-  ↓
-Python GPU Worker
-  ↓
-Face2Face + FFmpeg
-  ↓
-Cloud Storage Result
-  ↓
-Job Status / Result Page
+      │
+      ▼
+FastAPI API
+      │
+      ▼
+PostgreSQL
+      │
+      ▼
+Storage Provider
+(Local / GCS)
+      │
+      ▼
+Queue
+      │
+      ▼
+Python Worker
+      │
+      ▼
+SocAIty/face2face
+      │
+      ▼
+Result Storage
+      │
+      ▼
+Result API
 ```
 
-## Suggested Repository Structure
+## Storage Strategy
+
+Face2Wap uses a provider abstraction so the upload pipeline is identical in development and production.
+
+```txt
+Development
+───────────
+API
+ ↓
+Local Storage
+
+Production
+──────────
+API
+ ↓
+Google Cloud Storage
+```
+
+The worker consumes assets through the storage provider abstraction, allowing local development and GCP deployment to share the same processing pipeline with minimal configuration changes.
+
+---
+
+## Repository Structure
 
 ```txt
 face2wap/
-  apps/
+
+apps/
     web/
-  services/
+
+services/
     api/
     worker/
-  database/
+
+database/
     migrations/
-  infra/
+
+infra/
     docker/
     gcp/
-  docs/
-    project_status.md
+
+docs/
+
+storage/
+    uploads/
+    results/
+    temp/
 ```
 
+---
+
 ## Database Tables
+
+Current
 
 ```txt
 jobs
 job_assets
 job_events
-moderation_flags
-rate_limits
 audit_logs
+rate_limits
+```
+
+Planned
+
+```txt
+moderation_flags
 system_settings
 ```
 
-## Job Status Values
+---
+
+## Job Status
 
 ```txt
 PENDING
@@ -95,237 +179,341 @@ EXPIRED
 BLOCKED
 ```
 
-## Phase 1 — Foundation [Done]
+---
 
-Tasks:
+# Phase 1 — Foundation ✅
 
-* Create monorepo structure
-* Create Next.js frontend app
-* Create API service
-* Create Python worker service
-* Add Dockerfiles
-* Add `.env`
-* Add project documentation
-* Add GCP bucket plan
-* Add PostgreSQL schema plan
-* Add basic health check APIs
+Completed
 
-Status: Pending
+- Monorepo
+- Next.js
+- FastAPI
+- Worker
+- Docker
+- Docker Compose
+- PostgreSQL
+- Database migrations
+- Local .env
+- Project documentation
+- GCP planning
+- Health APIs
 
-## Phase 2 — Open Job System
+Status
 
-Tasks:
-* Create anonymous job API [Done]
-* Generate `jobId` [Done]
-* Generate private `jobToken` [Done]
-* Store job in PostgreSQL [Done]
-* Add job expiry time [Done]
-* Add job status API [Done]
-* Add job result API [Done]
-* Add audit log entry for each job action [Done]
-* Add basic IP-based rate limit [Done]
+✅ Completed
 
-Status: Pending
+---
 
-## Phase 3 — Upload System
+# Phase 2 — Open Job System ✅
 
-Tasks:
+Completed
 
-* Add source face image upload
-* Add target image upload
-* Add target video upload
-* Generate signed upload URLs
-* Validate file type
-* Validate file size
-* Store asset metadata
-* Block unsupported files
-* Add upload expiry
-* Add automatic cleanup plan
+- Anonymous Job API
+- jobId generation
+- jobToken generation
+- PostgreSQL persistence
+- Expiry handling
+- Status API
+- Result API
+- Audit logging
+- IP Rate Limiting
 
-Status: Pending
+Status
 
-## Phase 4 — Image Face Swap
+✅ Completed
 
-Tasks:
+---
 
-* Connect worker with queued image jobs
-* Download source and target image from GCS
-* Run face detection
-* Run face swap using `face2face`
-* Save output image to GCS
-* Update job status
-* Save worker logs
-* Add failure handling
-* Add result preview page
+# Phase 3 — Upload System 🚧
 
-Status: Pending
+## Phase 3.1 — Upload Preparation ✅
 
-## Phase 5 — Video Face Swap
+Completed
 
-Tasks:
+- Upload preparation API
+- Local/GCS storage abstraction
+- Upload metadata
+- Asset metadata persistence
+- Upload expiry
+- File type validation
+- File size validation
+- Unsupported file blocking
+- Upload slot generation
+- Asset-specific upload URL generation
+- Audit logging
 
-* Accept target video upload
-* Validate video duration
-* Validate video size
-* Extract frames using FFmpeg
-* Detect faces frame-by-frame
-* Run face swap on video frames
-* Preserve original audio
-* Rebuild video using FFmpeg
-* Save output video to GCS
-* Track video job progress
-* Add progress percentage
-* Add timeout handling
-* Add retry handling
-* Add failed-frame recovery logic
-* Add result download page
+Status
 
-Status: Pending
+✅ Completed
 
-## Phase 6 — Queue and Worker Reliability
+---
 
-Tasks:
+## Phase 3.2 — Upload Pipeline 🚧
 
-* Add Cloud Tasks or Pub/Sub
-* Add retry limits
-* Add dead-letter handling
-* Add worker heartbeat
-* Add job timeout
-* Add GPU warmup logic
-* Add worker concurrency control
-* Add memory and disk cleanup
-* Add structured logs
-* Add failed job diagnostics
+Completed
 
-Status: Pending
+- Production multipart upload API
+- Streaming upload (constant memory)
+- Source face image upload
+- SHA-256 checksum generation
+- Upload status transitions
+- Validation status transitions
+- Uploaded file size persistence
+- Local storage persistence
+- Upload audit logging
+- Upload ownership validation
+- Upload expiry validation
+- MIME type validation
+- Asset upload endpoint
+- Job/Asset verification
 
-## Phase 7 — Safety and Abuse Protection
+In Progress
 
-Tasks:
+- Target image upload validation
+- Target video upload validation
+- Image metadata extraction (width/height)
+- Video metadata extraction (duration/resolution)
+- Upload progress tracking
+- Upload completion endpoint
+- Upload retry support
 
-* Add consent checkbox
-* Add watermark option
-* Add NSFW input detection
-* Add blocked content rules
-* Add public-figure/celebrity policy layer if required
-* Add abuse reporting
-* Add rate limit by IP
-* Add temporary file deletion
-* Add audit logs
-* Add admin-only review mode later
+Status
 
-Status: Pending
+🚧 In Progress
 
-## Phase 8 — Production Deployment
+---
 
-Tasks:
+## Phase 3.3 — Storage Providers 🚧
 
-* Deploy Next.js UI
-* Deploy API service
-* Deploy PostgreSQL
-* Create GCS buckets
-* Configure signed URLs
-* Deploy GPU worker
-* Configure queue
-* Configure secrets
-* Add HTTPS
-* Add domain
-* Add logging
-* Add monitoring
-* Add alerting
-* Add backup policy
+Completed
 
-Status: Pending
+Local Provider
 
-## Phase 9 — UI Pages
+- Storage abstraction
+- Upload path generation
+- Local filesystem support
 
-Tasks:
+In Progress
 
-* Home page
-* Upload page
-* Job progress page
-* Result page
-* Error page
-* Privacy page
-* Terms page
-* Safety notice page
+Local Provider
 
-Status: Pending
+- Read file
+- Delete file
+- Result storage
 
-## Phase 10 — Testing
+Google Cloud Storage
 
-Tasks:
+- Signed upload URLs
+- Signed download URLs
+- Provider implementation
+- Automatic provider switching
 
-* API unit tests
-* Worker unit tests
-* Image swap test
-* Video swap test
-* Upload validation test
-* Queue retry test
-* Expired job test
-* Failed job test
-* Rate limit test
-* GCS signed URL test
-* End-to-end job test
+Status
 
-Status: Pending
+🚧 In Progress
 
-## Phase 11 — Cost and Scaling
+---
 
-Tasks:
+## Phase 3.4 — Cleanup ⏳
 
-* Limit max image size
-* Limit max video duration
-* Limit concurrent jobs
-* Add queue backpressure
-* Add GPU autoscaling plan
-* Add cleanup cron
-* Add storage lifecycle rule
-* Add cost monitoring
-* Add usage dashboard
+Todo
 
-Status: Pending
+- Upload expiry cleanup
+- Result expiry cleanup
+- Orphan cleanup
+- Temp cleanup
+- Scheduled cleanup worker
 
-## MVP Scope
+Status
 
-The MVP must include:
+⏳ Todo
 
-* Open access without login
-* Anonymous job token
-* Image face swap
-* Video face swap
-* GCS upload/result storage
-* Queue-based processing
-* PostgreSQL job tracking
-* GPU worker
-* Basic abuse protection
-* Auto-delete old files
+---
 
-## Not Included in v1
+## Phase 3.5 — Upload UI ⏳
 
-* User login
-* User dashboard
-* Payments
-* Credits
-* Team accounts
-* Admin panel
-* Mobile app
+Todo
 
-## Current Status
+- Light Mode
+- Dark Mode
+- Theme persistence
+- Drag & Drop
+- File picker
+- Image preview
+- Video preview
+- Upload progress
+- Cancel upload
+- Retry upload
+- Mobile responsive
+- Desktop responsive
 
-Project is in planning phase.
+Status
 
-Next recommended file:
+⏳ Todo
 
-```txt
-docs/architecture.md
-```
+---
 
-After that:
+# Phase 4 — Image Face Swap ⏳
 
-```txt
-database/schema.sql
-services/api
-services/worker
-apps/web
-```
+- Queue integration
+- Worker integration
+- Face detection
+- Face swap
+- Face restoration
+- Save result
+- Result preview
+- Failure handling
+
+Status
+
+⏳ Todo
+
+---
+
+# Phase 5 — Video Face Swap ⏳
+
+- Target video processing
+- Frame extraction
+- Frame face detection
+- Frame swapping
+- Face restoration
+- Audio preservation
+- Video rebuild
+- Progress tracking
+- Retry support
+- Timeout handling
+- Failed frame recovery
+
+Status
+
+⏳ Todo
+
+---
+
+# Phase 6 — Queue & Worker Reliability ⏳
+
+- Cloud Tasks
+- Pub/Sub
+- Retry policy
+- Dead Letter Queue
+- Worker heartbeat
+- GPU warmup
+- Worker concurrency
+- Structured logging
+- Diagnostics
+
+Status
+
+⏳ Todo
+
+---
+
+# Phase 7 — Safety & Moderation ⏳
+
+- Consent
+- Watermark
+- NSFW detection
+- Abuse detection
+- Public figure policy
+- Audit logging
+- Cleanup
+- Admin review
+
+Status
+
+⏳ Todo
+
+---
+
+# Phase 8 — Production Deployment ⏳
+
+- Cloud Run
+- Compute Engine GPU
+- GCS
+- Secrets
+- HTTPS
+- Monitoring
+- Logging
+- Alerts
+- Backup
+
+Status
+
+⏳ Todo
+
+---
+
+# Phase 9 — Frontend ⏳
+
+- Home
+- Upload
+- Job Progress
+- Results
+- Error
+- Privacy
+- Terms
+- Safety
+
+Status
+
+⏳ Todo
+
+---
+
+# Phase 10 — Testing ⏳
+
+- API Tests
+- Upload Tests
+- Worker Tests
+- Queue Tests
+- Image Tests
+- Video Tests
+- End-to-End Tests
+
+Status
+
+⏳ Todo
+
+---
+
+# Phase 11 — Scaling & Cost ⏳
+
+- Upload limits
+- Video limits
+- Concurrency
+- Storage lifecycle
+- Autoscaling
+- Cost monitoring
+- Usage dashboard
+
+Status
+
+⏳ Todo
+
+---
+
+## MVP
+
+- Anonymous jobs
+- Image Face Swap
+- Video Face Swap
+- Local Storage
+- GCS Support
+- Queue
+- PostgreSQL
+- GPU Worker
+- Basic Safety
+- Automatic Cleanup
+
+---
+
+## Not Included (v1)
+
+- Authentication
+- Payments
+- Credits
+- Admin Portal
+- Team Accounts
+- Mobile Applications
+
+---

@@ -79,3 +79,7 @@ docker-compose.override.yml
 .terraform/
 *.tfstate
 *.tfstate.*
+
+# Upload and result storage directories
+storage/uploads/
+storage/results/
