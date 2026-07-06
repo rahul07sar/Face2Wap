@@ -120,10 +120,10 @@ Tasks:
 * Generate private `jobToken` [Done]
 * Store job in PostgreSQL [Done]
 * Add job expiry time [Done]
-* Add job status API
-* Add job result API
-* Add audit log entry for each job action
-* Add basic IP-based rate limit
+* Add job status API [Done]
+* Add job result API [Done]
+* Add audit log entry for each job action [Done]
+* Add basic IP-based rate limit [Done]
 
 Status: Pending
 
