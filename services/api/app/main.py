@@ -15,7 +15,7 @@ open anonymous job APIs.
 from datetime import UTC, datetime, timedelta
 
 import psycopg
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, status, File, UploadFile
 from fastapi.responses import JSONResponse
 
 from app.audit import write_audit_log
@@ -34,10 +34,9 @@ from app.security import (
     hash_job_token,
     verify_job_token,
 )
-
 from app.upload_schemas import PrepareUploadRequest, PrepareUploadResponse
 from app.upload_service import prepare_job_upload
-
+from app.upload_handler import upload_job_asset
 
 # ============================================================================
 # Application
@@ -312,6 +311,42 @@ def prepare_upload(
             "assetType": payload.asset_type,
             "mimeType": payload.mime_type,
             "sizeBytes": payload.size_bytes,
+        },
+    )
+
+    connection.commit()
+    return result
+
+@app.post("/jobs/{job_id}/assets/{asset_id}/upload")
+async def upload_asset(
+    job_id: str,
+    asset_id: int,
+    request: Request,
+    file: UploadFile = File(...),
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Upload a prepared source image, target image, or target video asset."""
+
+    enforce_rate_limit(connection, request)
+
+    result = await upload_job_asset(
+        connection,
+        job_id=job_id,
+        asset_id=asset_id,
+        file=file,
+    )
+
+    write_audit_log(
+        connection,
+        action="ASSET_UPLOADED",
+        job_id=job_id,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+        metadata={
+            "assetId": asset_id,
+            "assetType": result["assetType"],
+            "sizeBytes": result["sizeBytes"],
+            "sha256": result["sha256"],
         },
     )
 

@@ -82,7 +82,7 @@ def prepare_job_upload(
                 upload_expires_at,
                 original_filename
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, 'PENDING', %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 'PREPARED', %s, %s)
             RETURNING id
             """,
             (
