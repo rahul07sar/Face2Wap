@@ -110,7 +110,7 @@ Tasks:
 * Add PostgreSQL schema plan
 * Add basic health check APIs
 
-Status: Pending
+Status: Completed
 
 ## Phase 2 — Open Job System
 
@@ -125,7 +125,7 @@ Tasks:
 * Add audit log entry for each job action [Done]
 * Add basic IP-based rate limit [Done]
 
-Status: Pending
+Status: Completed
 
 ## Phase 3 — Upload System
 
@@ -142,7 +142,7 @@ Tasks:
 * Add upload expiry
 * Add automatic cleanup plan
 
-Status: Pending
+Status: In progress
 
 ## Phase 4 — Image Face Swap
 

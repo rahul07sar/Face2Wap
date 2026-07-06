@@ -35,6 +35,9 @@ from app.security import (
     verify_job_token,
 )
 
+from app.upload_schemas import PrepareUploadRequest, PrepareUploadResponse
+from app.upload_service import prepare_job_upload
+
 
 # ============================================================================
 # Application
@@ -271,3 +274,46 @@ def get_job_result(
         "status": job["status"],
         "resultUrl": result_asset["object_path"] if result_asset else None,
     }
+
+# ============================================================================
+# Upload and Storage System
+# ============================================================================
+
+@app.post(
+    "/jobs/{job_id}/uploads/prepare",
+    response_model=PrepareUploadResponse,
+)
+def prepare_upload(
+    job_id: str,
+    payload: PrepareUploadRequest,
+    request: Request,
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Prepare an upload slot for source image, target image, or target video."""
+
+    enforce_rate_limit(connection, request)
+
+    result = prepare_job_upload(
+        connection,
+        job_id=job_id,
+        asset_type=payload.asset_type,
+        filename=payload.filename,
+        mime_type=payload.mime_type,
+        size_bytes=payload.size_bytes,
+    )
+
+    write_audit_log(
+        connection,
+        action="UPLOAD_PREPARED",
+        job_id=job_id,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+        metadata={
+            "assetType": payload.asset_type,
+            "mimeType": payload.mime_type,
+            "sizeBytes": payload.size_bytes,
+        },
+    )
+
+    connection.commit()
+    return result
