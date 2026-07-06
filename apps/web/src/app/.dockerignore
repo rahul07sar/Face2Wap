@@ -1,0 +1,22 @@
+# ============================================================================
+# Face2Wap
+# ----------------------------------------------------------------------------
+# Docker Ignore Configuration
+# ============================================================================
+
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+node_modules
+apps/web/node_modules
+apps/web/.next
+
+services/api/.venv
+services/worker/.venv
+
+__pycache__
+*.pyc
+.DS_Store

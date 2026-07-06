@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: face2wap-postgres
+    environment:
+      POSTGRES_DB: face2wap
+      POSTGRES_USER: face2wap
+      POSTGRES_PASSWORD: face2wap
+    ports:
+      - "5432:5432"
+    volumes:
+      - face2wap_postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U face2wap -d face2wap"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    container_name: face2wap-api
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: face2wap-web
+    ports:
+      - "3000:3000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: services/worker/Dockerfile
+    container_name: face2wap-worker
+    env_file:
+      - .env
+    ports:
+      - "8001:8001"
+
+volumes:
+  face2wap_postgres_data:
