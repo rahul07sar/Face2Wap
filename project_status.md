@@ -322,14 +322,22 @@ Local Provider
 - Local upload writes
 - Invalid file deletion
 - Failed upload defensive cleanup
+- Local upload path resolver
+- Local result path resolver
+- Local file existence check
+- Local file delete helper
+- Local missing-file delete handling
+- Local result path preparation
+- Upload path traversal protection
+- Result path traversal protection
+- Local storage helper tests
 
 In Progress
 
 Local Provider
 
-- General read file operation
-- General delete file operation
-- Result storage
+- General result registration integration
+- Worker result write integration
 
 Google Cloud Storage
 
@@ -337,6 +345,7 @@ Google Cloud Storage
 - Signed download URLs
 - Provider implementation
 - Automatic provider switching
+- GCS upload progress compatibility
 
 Status
 
