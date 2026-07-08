@@ -281,15 +281,32 @@ Completed
 - Target video upload tested successfully
 - Image metadata persistence tested successfully
 - Video metadata persistence tested successfully
+- Metadata extraction failure handling
+- Invalid image detection
+- Invalid file rejection with HTTP 400
+- Failed upload database state persistence
+- Validation error persistence
+- Invalid physical file cleanup
+- Orphan file prevention after metadata validation failure
+- Upload retry API
+- Failed asset retry validation
+- FAILED to PREPARED state transition
+- Validation state cleanup during retry
+- Validation error cleanup during retry
+- Upload metadata cleanup during retry
+- Fresh upload expiry generation during retry
+- Defensive physical file cleanup during retry
+- Same asset ID preservation during retry
+- Upload retry lifecycle tested successfully
 
 In Progress
 
 - Upload progress tracking
 - Upload completion endpoint
-- Upload retry support
-- Metadata extraction failure handling and cleanup
 
-🚧 In Progress  | Core pipeline working
+Status
+
+🚧 In Progress | Core upload pipeline, validation, metadata extraction, failure cleanup, and retry support working
 
 ---
 
@@ -302,13 +319,16 @@ Local Provider
 - Storage abstraction
 - Upload path generation
 - Local filesystem support
+- Local upload writes
+- Invalid file deletion
+- Failed upload defensive cleanup
 
 In Progress
 
 Local Provider
 
-- Read file
-- Delete file
+- General read file operation
+- General delete file operation
 - Result storage
 
 Google Cloud Storage

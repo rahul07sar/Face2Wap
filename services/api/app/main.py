@@ -37,6 +37,7 @@ from app.security import (
 from app.upload_schemas import PrepareUploadRequest, PrepareUploadResponse
 from app.upload_service import prepare_job_upload
 from app.upload_handler import upload_job_asset
+from app.upload_retry_service import retry_failed_upload
 
 # ============================================================================
 # Application
@@ -347,6 +348,42 @@ async def upload_asset(
             "assetType": result["assetType"],
             "sizeBytes": result["sizeBytes"],
             "sha256": result["sha256"],
+        },
+    )
+
+    connection.commit()
+    return result
+
+# ============================================================================
+# Upload and Storage System failures
+# ============================================================================
+
+@app.post("/jobs/{job_id}/assets/{asset_id}/retry")
+def retry_asset_upload(
+    job_id: str,
+    asset_id: int,
+    request: Request,
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Reset a failed upload asset so it can be uploaded again."""
+
+    enforce_rate_limit(connection, request)
+
+    result = retry_failed_upload(
+        connection,
+        job_id=job_id,
+        asset_id=asset_id,
+    )
+
+    write_audit_log(
+        connection,
+        action="UPLOAD_RETRY_PREPARED",
+        job_id=job_id,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+        metadata={
+            "assetId": asset_id,
+            "assetType": result["assetType"],
         },
     )
 
