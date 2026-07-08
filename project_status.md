@@ -298,10 +298,10 @@ Completed
 - Defensive physical file cleanup during retry
 - Same asset ID preservation during retry
 - Upload retry lifecycle tested successfully
+- Upload progress tracking
 
 In Progress
 
-- Upload progress tracking
 - Upload completion endpoint
 
 Status
