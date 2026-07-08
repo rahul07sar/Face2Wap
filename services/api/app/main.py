@@ -39,6 +39,7 @@ from app.upload_service import prepare_job_upload
 from app.upload_handler import upload_job_asset
 from app.upload_retry_service import retry_failed_upload
 from app.upload_completion_service import complete_validated_upload
+from app.upload_progress_service import get_asset_upload_progress
 
 # ============================================================================
 # Application
@@ -427,3 +428,24 @@ def complete_asset_upload(
 
     connection.commit()
     return result
+
+# ============================================================================
+# Upload Storage Progress
+# ============================================================================
+
+@app.get("/jobs/{job_id}/assets/{asset_id}/progress")
+def get_upload_progress(
+    job_id: str,
+    asset_id: int,
+    request: Request,
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Return upload progress for a prepared/uploading/validated asset."""
+
+    enforce_rate_limit(connection, request)
+
+    return get_asset_upload_progress(
+        connection,
+        job_id=job_id,
+        asset_id=asset_id,
+    )
