@@ -255,6 +255,8 @@ Completed
 - Production multipart upload API
 - Streaming upload (constant memory)
 - Source face image upload
+- Target image upload
+- Target video upload
 - SHA-256 checksum generation
 - Upload status transitions
 - Validation status transitions
@@ -266,20 +268,28 @@ Completed
 - MIME type validation
 - Asset upload endpoint
 - Job/Asset verification
+- Image metadata extraction using Pillow
+- Image width extraction
+- Image height extraction
+- Video metadata extraction using FFprobe
+- Video width extraction
+- Video height extraction
+- Video duration extraction
+- FFmpeg/FFprobe support in API Docker container
+- Source image upload tested successfully
+- Target image upload tested successfully
+- Target video upload tested successfully
+- Image metadata persistence tested successfully
+- Video metadata persistence tested successfully
 
 In Progress
 
-- Target image upload validation
-- Target video upload validation
-- Image metadata extraction (width/height)
-- Video metadata extraction (duration/resolution)
 - Upload progress tracking
 - Upload completion endpoint
 - Upload retry support
+- Metadata extraction failure handling and cleanup
 
-Status
-
-🚧 In Progress
+🚧 In Progress  | Core pipeline working
 
 ---
 
