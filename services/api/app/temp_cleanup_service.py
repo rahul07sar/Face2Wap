@@ -11,7 +11,7 @@ Deletes stale local temporary files that exceed the configured maximum age.
 ============================================================================
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from app.config import settings
@@ -27,7 +27,7 @@ def cleanup_stale_temp_files() -> dict:
             "deletedTempFiles": 0,
         }
 
-    cutoff_time = datetime.now(UTC) - timedelta(
+    cutoff_time = datetime.now(timezone.utc) - timedelta(
         minutes=settings.cleanup_temp_file_max_age_minutes,
     )
 
@@ -39,8 +39,8 @@ def cleanup_stale_temp_files() -> dict:
 
         modified_at = datetime.fromtimestamp(
             file_path.stat().st_mtime,
-            tz=UTC,
-        )
+            tz=timezone.utc,
+)
 
         if modified_at >= cutoff_time:
             continue

@@ -13,7 +13,7 @@ updates.
 ============================================================================
 """
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import psycopg
 from fastapi import HTTPException, UploadFile, status
@@ -84,7 +84,7 @@ async def upload_job_asset(
     if not asset:
         raise HTTPException(status_code=404, detail="Upload asset not found.")
 
-    now = datetime.now(UTC)
+    now = datetime.now(timezone.utc)
 
     if asset["job_expires_at"] <= now:
         raise HTTPException(status_code=410, detail="Job has expired.")

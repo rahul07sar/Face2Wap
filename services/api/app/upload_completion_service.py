@@ -12,7 +12,7 @@ required assets for future queue processing.
 ============================================================================
 """
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 import psycopg
 from fastapi import HTTPException, status
@@ -61,7 +61,7 @@ def complete_validated_upload(
             detail="Upload asset not found.",
         )
 
-    if asset["job_expires_at"] <= datetime.now(UTC):
+    if asset["job_expires_at"] <= datetime.now(timezone.utc):
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
             detail="Job has expired.",

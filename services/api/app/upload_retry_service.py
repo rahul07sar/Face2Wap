@@ -12,7 +12,7 @@ with the same filename, MIME type, and expected size.
 ============================================================================
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import psycopg
 from fastapi import HTTPException, status
@@ -54,7 +54,7 @@ def retry_failed_upload(
             detail="Upload asset not found.",
         )
 
-    if asset["job_expires_at"] <= datetime.now(UTC):
+    if asset["job_expires_at"] <= datetime.now(timezone.utc):
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
             detail="Job has expired.",
@@ -70,7 +70,7 @@ def retry_failed_upload(
     target_path = resolve_local_upload_path(asset["object_path"])
     target_path.unlink(missing_ok=True)
 
-    upload_expires_at = datetime.now(UTC) + timedelta(
+    upload_expires_at = datetime.now(timezone.utc) + timedelta(
         minutes=settings.upload_url_expiry_minutes
     )
 

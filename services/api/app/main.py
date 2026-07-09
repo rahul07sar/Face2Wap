@@ -12,7 +12,7 @@ open anonymous job APIs.
 ============================================================================
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import psycopg
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status, File, UploadFile
@@ -112,7 +112,7 @@ def create_job(
     job_id = generate_job_id()
     job_token = generate_job_token()
     job_token_hash = hash_job_token(job_token)
-    expires_at = datetime.now(UTC) + timedelta(hours=settings.job_expiry_hours)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=settings.job_expiry_hours)
 
     with connection.cursor() as cursor:
         cursor.execute(
@@ -241,7 +241,7 @@ def get_job_result(
             detail="Job not found.",
         )
 
-    if job["expires_at"] <= datetime.now(UTC):
+   if job["expires_at"] <= datetime.now(timezone.utc): 
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
             detail="Job has expired.",
