@@ -12,7 +12,7 @@ open anonymous job APIs.
 ============================================================================
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import psycopg
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status, File, UploadFile
@@ -40,6 +40,13 @@ from app.upload_handler import upload_job_asset
 from app.upload_retry_service import retry_failed_upload
 from app.upload_completion_service import complete_validated_upload
 from app.upload_progress_service import get_asset_upload_progress
+from app.cleanup_service import cleanup_expired_uploads
+from app.cleanup_service import (
+    cleanup_expired_results,
+    cleanup_expired_uploads,
+)
+from app.orphan_cleanup_service import cleanup_orphan_files
+from app.temp_cleanup_service import cleanup_stale_temp_files
 
 # ============================================================================
 # Application
@@ -105,7 +112,7 @@ def create_job(
     job_id = generate_job_id()
     job_token = generate_job_token()
     job_token_hash = hash_job_token(job_token)
-    expires_at = datetime.now(UTC) + timedelta(hours=settings.job_expiry_hours)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=settings.job_expiry_hours)
 
     with connection.cursor() as cursor:
         cursor.execute(
@@ -234,7 +241,7 @@ def get_job_result(
             detail="Job not found.",
         )
 
-    if job["expires_at"] <= datetime.now(UTC):
+   if job["expires_at"] <= datetime.now(timezone.utc): 
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
             detail="Job has expired.",
@@ -449,3 +456,87 @@ def get_upload_progress(
         job_id=job_id,
         asset_id=asset_id,
     )
+
+# ============================================================================
+# Upload expiry cleanup
+# ============================================================================
+
+@app.post("/cleanup/uploads/expired")
+def cleanup_expired_upload_assets(
+    request: Request,
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Clean expired prepared/failed upload assets."""
+
+    if settings.app_env != "development":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cleanup endpoint is only available in development.",
+        )
+
+    enforce_rate_limit(connection, request)
+
+    return cleanup_expired_uploads(connection)
+
+# ============================================================================
+# Results expiry cleanup
+# ============================================================================
+
+@app.post("/cleanup/results/expired")
+def cleanup_expired_result_assets(
+    request: Request,
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Clean result assets belonging to expired jobs."""
+
+    if settings.app_env != "development":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cleanup endpoint is only available in development.",
+        )
+
+    enforce_rate_limit(connection, request)
+
+    return cleanup_expired_results(connection)
+
+# ============================================================================
+# Orphaned or Unidentified file cleanup
+# ============================================================================
+
+@app.post("/cleanup/orphans")
+def cleanup_orphan_storage_files(
+    request: Request,
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Clean local storage files that are not referenced by job_assets."""
+
+    if settings.app_env != "development":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cleanup endpoint is only available in development.",
+        )
+
+    enforce_rate_limit(connection, request)
+
+    return cleanup_orphan_files(connection)
+
+# ============================================================================
+# Stale temporary file cleanup
+# ============================================================================
+
+@app.post("/cleanup/temp")
+def cleanup_stale_temporary_files(
+    request: Request,
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Clean stale files from local temporary storage."""
+
+    if settings.app_env != "development":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cleanup endpoint is only available in development.",
+        )
+
+    enforce_rate_limit(connection, request)
+
+    return cleanup_stale_temp_files()

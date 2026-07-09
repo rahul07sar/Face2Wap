@@ -20,13 +20,21 @@ class Settings(BaseSettings):
     app_env: str = "development"
     database_url: str
     job_token_secret: str
+
     job_expiry_hours: int = 24
+
     rate_limit_window_seconds: int = 60
     rate_limit_max_requests: int = 20
+
     storage_provider: str = "local"
     local_upload_dir: str = "storage/uploads"
     local_result_dir: str = "storage/results"
+    local_temp_dir: str = "storage/temp"
+
     upload_url_expiry_minutes: int = 15
+    cleanup_batch_size: int = 100
+    cleanup_temp_file_max_age_minutes: int = 60
+
     max_image_size_mb: int = 10
     max_video_size_mb: int = 200
     max_video_duration_seconds: int = 60

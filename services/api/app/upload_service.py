@@ -11,7 +11,7 @@ Creates upload records and prepares local or cloud upload destinations.
 ============================================================================
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import psycopg
 from fastapi import HTTPException, status
@@ -46,7 +46,7 @@ def prepare_job_upload(
     if not job:
         raise HTTPException(status_code=404, detail="Job not found.")
 
-    if job["expires_at"] <= datetime.now(UTC):
+    if job["expires_at"] <= datetime.now(timezone.utc):
         raise HTTPException(status_code=410, detail="Job has expired.")
 
     validate_upload_request(
@@ -57,7 +57,7 @@ def prepare_job_upload(
     )
 
     expires_in_seconds = settings.upload_url_expiry_minutes * 60
-    upload_expires_at = datetime.now(UTC) + timedelta(seconds=expires_in_seconds)
+    upload_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in_seconds)
 
     storage = get_storage_provider()
     prepared = storage.prepare_upload(

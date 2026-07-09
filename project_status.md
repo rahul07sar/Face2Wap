@@ -312,7 +312,7 @@ Status
 
 ## Phase 3.3 — Storage Providers 🚧
 
-Completed
+✅ Done
 
 Local Provider
 
@@ -365,17 +365,17 @@ Status
 
 ## Phase 3.4 — Cleanup ⏳
 
-Todo
+✅ Done
 
 - Upload expiry cleanup
 - Result expiry cleanup
-- Orphan cleanup
+- Orphan/Unidentified cleanup
 - Temp cleanup
 - Scheduled cleanup worker
 
 Status
 
-⏳ Todo
+✅ Done
 
 ---
 
