@@ -6,10 +6,10 @@ File:        storage_result_service.py
 Module:      API / Storage Result Service
 Description:
 
-Provides local result asset registration helpers for future worker-generated
+Provides result asset registration helpers for future worker-generated
 Face2Wap image and video outputs.
 
-It will be used in Phase 4 when the worker generates the image result.
+It will be used in Phase 4 when the worker generates image and video results.
 
 ============================================================================
 """
@@ -18,7 +18,7 @@ from pathlib import Path
 
 import psycopg
 
-from app.storage.local_file_service import prepare_local_result_path
+from app.storage.factory import get_storage_provider
 
 
 def prepare_result_asset(
@@ -28,9 +28,10 @@ def prepare_result_asset(
     filename: str,
     mime_type: str,
 ) -> dict:
-    """Prepare a local result asset path and register it in the database."""
+    """Prepare a result asset path and register it in the database."""
 
-    object_path, result_path = prepare_local_result_path(
+    storage = get_storage_provider()
+    prepared_result = storage.prepare_result(
         job_id=job_id,
         filename=filename,
     )
@@ -49,13 +50,15 @@ def prepare_result_asset(
                 validation_status,
                 completed_at
             )
-            VALUES (%s, 'RESULT', 'local', %s, %s, 'local', 'COMPLETED', 'VALIDATED', NOW())
+            VALUES (%s, 'RESULT', %s, %s, %s, %s, 'COMPLETED', 'VALIDATED', NOW())
             RETURNING id
             """,
             (
                 job_id,
-                object_path,
+                prepared_result.storage_provider,
+                prepared_result.object_path,
                 mime_type,
+                prepared_result.storage_provider,
             ),
         )
         asset = cursor.fetchone()
@@ -64,9 +67,13 @@ def prepare_result_asset(
         "assetId": asset["id"],
         "jobId": job_id,
         "assetType": "RESULT",
-        "storageProvider": "local",
-        "objectPath": object_path,
-        "resultPath": str(result_path),
+        "storageProvider": prepared_result.storage_provider,
+        "objectPath": prepared_result.object_path,
+        "resultPath": (
+            str(prepared_result.result_path)
+            if prepared_result.result_path
+            else None
+        ),
     }
 
 
@@ -79,3 +86,4 @@ def copy_local_result_file(
 
     result_path.parent.mkdir(parents=True, exist_ok=True)
     result_path.write_bytes(source_path.read_bytes())
+    
