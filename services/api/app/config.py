@@ -11,7 +11,7 @@ Loads and validates runtime configuration for the Face2Wap API service.
 ============================================================================
 """
 
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -31,9 +31,11 @@ class Settings(BaseSettings):
     max_video_size_mb: int = 200
     max_video_duration_seconds: int = 60
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore",
+    )
 
 
 settings = Settings()

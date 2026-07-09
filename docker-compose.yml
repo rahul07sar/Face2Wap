@@ -29,6 +29,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
 
   web:
     build:
@@ -37,6 +43,9 @@ services:
     container_name: face2wap-web
     ports:
       - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
 
   worker:
     build:

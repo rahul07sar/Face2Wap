@@ -322,14 +322,33 @@ Local Provider
 - Local upload writes
 - Invalid file deletion
 - Failed upload defensive cleanup
+- Local upload path resolver
+- Local result path resolver
+- Local file existence check
+- Local file delete helper
+- Local missing-file delete handling
+- Local result path preparation
+- Result asset registration helper
+- Local result file copy helper
+- Upload path traversal protection
+- Result path traversal protection
+- Local storage helper tests
+- Result storage helper tests
+- Storage provider interface extended
+- Local provider read/delete/result methods
+- GCS provider placeholder aligned to interface
+- Worker configuration integration
+- Worker PostgreSQL integration
+- Worker result path preparation
+- Worker result file copying
+- Worker result source preservation
+- Worker result path traversal protection
+- Worker result storage tests
+- Worker result database registration
+- Worker job completion update
+- Worker result registration integration test
 
 In Progress
-
-Local Provider
-
-- General read file operation
-- General delete file operation
-- Result storage
 
 Google Cloud Storage
 
@@ -337,11 +356,11 @@ Google Cloud Storage
 - Signed download URLs
 - Provider implementation
 - Automatic provider switching
+- GCS upload progress compatibility
 
 Status
 
-🚧 In Progress
-
+🚧 In Progress | Local Provider Completed
 ---
 
 ## Phase 3.4 — Cleanup ⏳
