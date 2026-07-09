@@ -45,6 +45,7 @@ from app.cleanup_service import (
     cleanup_expired_results,
     cleanup_expired_uploads,
 )
+from app.orphan_cleanup_service import cleanup_orphan_files
 
 # ============================================================================
 # Application
@@ -497,3 +498,23 @@ def cleanup_expired_result_assets(
 
     return cleanup_expired_results(connection)
 
+# ============================================================================
+# Orphaned or Unidentified file cleanup
+# ============================================================================
+
+@app.post("/cleanup/orphans")
+def cleanup_orphan_storage_files(
+    request: Request,
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Clean local storage files that are not referenced by job_assets."""
+
+    if settings.app_env != "development":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cleanup endpoint is only available in development.",
+        )
+
+    enforce_rate_limit(connection, request)
+
+    return cleanup_orphan_files(connection)
