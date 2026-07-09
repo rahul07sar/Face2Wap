@@ -26,6 +26,8 @@ services:
       - .env
     ports:
       - "8000:8000"
+    volumes:
+      - ./storage:/app/storage
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,6 +58,8 @@ services:
       - .env
     ports:
       - "8001:8001"
+    volumes:
+      - ./storage:/app/storage
 
 volumes:
   face2wap_postgres_data:
