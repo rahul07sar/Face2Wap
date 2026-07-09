@@ -40,6 +40,7 @@ from app.upload_handler import upload_job_asset
 from app.upload_retry_service import retry_failed_upload
 from app.upload_completion_service import complete_validated_upload
 from app.upload_progress_service import get_asset_upload_progress
+from app.cleanup_service import cleanup_expired_uploads
 
 # ============================================================================
 # Application
@@ -449,3 +450,24 @@ def get_upload_progress(
         job_id=job_id,
         asset_id=asset_id,
     )
+
+# ============================================================================
+# Cleanup System
+# ============================================================================
+
+@app.post("/cleanup/uploads/expired")
+def cleanup_expired_upload_assets(
+    request: Request,
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Clean expired prepared/failed upload assets."""
+
+    if settings.app_env != "development":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cleanup endpoint is only available in development.",
+        )
+
+    enforce_rate_limit(connection, request)
+
+    return cleanup_expired_uploads(connection)
