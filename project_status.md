@@ -299,9 +299,6 @@ Completed
 - Same asset ID preservation during retry
 - Upload retry lifecycle tested successfully
 - Upload progress tracking
-
-In Progress
-
 - Upload completion endpoint
 
 Status
@@ -348,7 +345,7 @@ Local Provider
 - Worker job completion update
 - Worker result registration integration test
 
-In Progress
+🚧 In Progress
 
 Google Cloud Storage
 
@@ -358,9 +355,7 @@ Google Cloud Storage
 - Automatic provider switching
 - GCS upload progress compatibility
 
-Status
 
-🚧 In Progress | Local Provider Completed
 ---
 
 ## Phase 3.4 — Cleanup ⏳
@@ -381,7 +376,7 @@ Status
 
 ## Phase 3.5 — Upload UI ⏳
 
-Todo
+🚧 In Progress
 
 - Light Mode
 - Dark Mode
@@ -398,7 +393,7 @@ Todo
 
 Status
 
-⏳ Todo
+🚧 In Progress
 
 ---
 
