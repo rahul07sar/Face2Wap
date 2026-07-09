@@ -61,5 +61,21 @@ services:
     volumes:
       - ./storage:/app/storage
 
+  cleanup:
+    build:
+      context: .
+      dockerfile: services/api/Dockerfile
+    container_name: face2wap-cleanup
+    env_file:
+      - .env
+    volumes:
+      - ./storage:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ["python", "-m", "app.cleanup_job"]
+    profiles:
+      - cleanup
+
 volumes:
   face2wap_postgres_data:

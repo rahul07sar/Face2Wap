@@ -312,7 +312,7 @@ Status
 
 ## Phase 3.3 — Storage Providers 🚧
 
-Completed
+✅ Done
 
 Local Provider
 
@@ -365,7 +365,7 @@ Status
 
 ## Phase 3.4 — Cleanup ⏳
 
-In progress
+✅ Done
 
 - Upload expiry cleanup
 - Result expiry cleanup
@@ -375,7 +375,7 @@ In progress
 
 Status
 
-⏳ In progress
+✅ Done
 
 ---
 
