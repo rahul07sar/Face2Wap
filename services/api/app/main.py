@@ -46,6 +46,7 @@ from app.cleanup_service import (
     cleanup_expired_uploads,
 )
 from app.orphan_cleanup_service import cleanup_orphan_files
+from app.temp_cleanup_service import cleanup_stale_temp_files
 
 # ============================================================================
 # Application
@@ -518,3 +519,24 @@ def cleanup_orphan_storage_files(
     enforce_rate_limit(connection, request)
 
     return cleanup_orphan_files(connection)
+
+# ============================================================================
+# Stale temporary file cleanup
+# ============================================================================
+
+@app.post("/cleanup/temp")
+def cleanup_stale_temporary_files(
+    request: Request,
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Clean stale files from local temporary storage."""
+
+    if settings.app_env != "development":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Cleanup endpoint is only available in development.",
+        )
+
+    enforce_rate_limit(connection, request)
+
+    return cleanup_stale_temp_files()

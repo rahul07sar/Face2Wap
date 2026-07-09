@@ -365,7 +365,7 @@ Status
 
 ## Phase 3.4 — Cleanup ⏳
 
-Todo
+In progress
 
 - Upload expiry cleanup
 - Result expiry cleanup
@@ -375,7 +375,7 @@ Todo
 
 Status
 
-⏳ Todo
+⏳ In progress
 
 ---
 
