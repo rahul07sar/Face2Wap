@@ -6,7 +6,8 @@ File:        config.py
 Module:      API / Configuration
 Description:
 
-Loads and validates runtime configuration for the Face2Wap API service.
+Loads and validates runtime configuration for the Face2Wap API service,
+including database, storage, upload, cleanup, and internal worker settings.
 
 ============================================================================
 """
@@ -35,9 +36,15 @@ class Settings(BaseSettings):
     cleanup_batch_size: int = 100
     cleanup_temp_file_max_age_minutes: int = 60
 
-    max_image_size_mb: int = 10
-    max_video_size_mb: int = 200
+    max_image_size_mb: int = 50
+    max_video_size_mb: int = 2048
     max_video_duration_seconds: int = 60
+
+    cors_allowed_origins: str = ""
+
+    worker_base_url: str
+    worker_api_token: str
+    worker_request_timeout_seconds: int = 900
 
     model_config = SettingsConfigDict(
         env_file=".env",

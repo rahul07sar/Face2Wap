@@ -15,7 +15,7 @@ open anonymous job APIs.
 from datetime import datetime, timedelta, timezone
 
 import psycopg
-from fastapi import Depends, FastAPI, HTTPException, Query, Request, status, File, UploadFile
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, status, File, UploadFile, BackgroundTasks
 from fastapi.responses import JSONResponse
 
 from app.audit import write_audit_log
@@ -40,13 +40,17 @@ from app.upload_handler import upload_job_asset
 from app.upload_retry_service import retry_failed_upload
 from app.upload_completion_service import complete_validated_upload
 from app.upload_progress_service import get_asset_upload_progress
-from app.cleanup_service import cleanup_expired_uploads
 from app.cleanup_service import (
     cleanup_expired_results,
     cleanup_expired_uploads,
 )
 from app.orphan_cleanup_service import cleanup_orphan_files
 from app.temp_cleanup_service import cleanup_stale_temp_files
+from fastapi.middleware.cors import CORSMiddleware
+from app.image_processing_service import (
+    dispatch_image_swap_job,
+    queue_image_swap_job,
+)
 
 # ============================================================================
 # Application
@@ -57,6 +61,17 @@ app = FastAPI(
     version="0.2.0",
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        origin.strip()
+        for origin in settings.cors_allowed_origins.split(",")
+        if origin.strip()
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ============================================================================
 # Health Checks
@@ -241,7 +256,7 @@ def get_job_result(
             detail="Job not found.",
         )
 
-   if job["expires_at"] <= datetime.now(timezone.utc): 
+    if job["expires_at"] <= datetime.now(timezone.utc):
         raise HTTPException(
             status_code=status.HTTP_410_GONE,
             detail="Job has expired.",
@@ -540,3 +555,42 @@ def cleanup_stale_temporary_files(
     enforce_rate_limit(connection, request)
 
     return cleanup_stale_temp_files()
+
+# ============================================================================
+# Image Face-Swap Processing
+# ============================================================================
+
+@app.post("/jobs/{job_id}/process-image")
+def process_image_swap(
+    job_id: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    token: str = Query(...),
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Queue a validated image face-swap job for worker processing."""
+
+    enforce_rate_limit(connection, request)
+
+    result = queue_image_swap_job(
+        connection,
+        job_id=job_id,
+        job_token=token,
+    )
+
+    write_audit_log(
+        connection,
+        action="IMAGE_SWAP_QUEUED",
+        job_id=job_id,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+
+    connection.commit()
+
+    background_tasks.add_task(
+        dispatch_image_swap_job,
+        job_id=job_id,
+    )
+
+    return result

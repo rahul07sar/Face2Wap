@@ -7,7 +7,8 @@ Module:      Worker / Configuration
 Description:
 
 Loads environment-based configuration required by the Face2Wap worker for
-database access and local or future cloud storage integration.
+database access, internal API protection, face-swap processing, and local or
+future cloud storage integration.
 
 ============================================================================
 """
@@ -19,6 +20,9 @@ class Settings(BaseSettings):
     """Face2Wap worker configuration."""
 
     database_url: str
+
+    worker_api_token: str
+    face_swap_device_id: int = 0
 
     storage_provider: str = "local"
 

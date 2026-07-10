@@ -1,142 +1,643 @@
 .page {
-  --background: #fafafa;
-  --foreground: #fff;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(124, 58, 237, 0.18), transparent 34%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  color: #101828;
+}
 
-  --text-primary: #000;
-  --text-secondary: #666;
-
-  --button-primary-hover: #383838;
-  --button-secondary-hover: #f2f2f2;
-  --button-secondary-border: #ebebeb;
-
+.header {
   display: flex;
-  flex: 1;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-family: var(--font-geist-sans);
-  background-color: var(--background);
+  justify-content: space-between;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 24px 0;
+}
+
+.brand {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: inherit;
+  text-decoration: none;
+}
+
+.navigation {
+  display: flex;
+  gap: 20px;
+}
+
+.navigation a {
+  color: #475467;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .main {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 56px 0 80px;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(360px, 1.05fr);
+  gap: 36px;
+  align-items: center;
+}
+
+.heroContent {
   display: flex;
-  flex: 1;
-  width: 100%;
-  max-width: 800px;
   flex-direction: column;
-  align-items: flex-start;
+  gap: 22px;
+}
+
+.eyebrow,
+.step {
+  width: fit-content;
+  border: 1px solid rgba(124, 58, 237, 0.22);
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.08);
+  color: #6d28d9;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.heroContent h1 {
+  max-width: 620px;
+  margin: 0;
+  font-size: clamp(48px, 7vw, 92px);
+  line-height: 0.95;
+  letter-spacing: -0.07em;
+}
+
+.heroContent p {
+  max-width: 600px;
+  margin: 0;
+  color: #475467;
+  font-size: 20px;
+  line-height: 1.65;
+}
+
+.uploadPanel {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 28px;
+  box-shadow: 0 28px 80px rgba(79, 70, 229, 0.18);
+  backdrop-filter: blur(18px);
+}
+
+.uploadHeader {
+  display: flex;
   justify-content: space-between;
-  background-color: var(--foreground);
-  padding: 120px 60px;
+  gap: 18px;
+  margin-bottom: 22px;
 }
 
-.intro {
+.uploadHeader h2 {
+  margin: 12px 0 0;
+  font-size: 28px;
+  letter-spacing: -0.04em;
+}
+
+.fileLimit {
+  color: #667085;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.dropZone {
   display: flex;
+  min-height: 360px;
   flex-direction: column;
-  align-items: flex-start;
-  text-align: left;
-  gap: 24px;
+  align-items: center;
+  justify-content: center;
+  border: 2px dashed rgba(124, 58, 237, 0.28);
+  border-radius: 26px;
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.08), rgba(255, 255, 255, 0.72));
+  padding: 32px;
+  text-align: center;
 }
 
-.intro h1 {
-  max-width: 320px;
-  font-size: 40px;
-  font-weight: 600;
-  line-height: 48px;
-  letter-spacing: -2.4px;
-  text-wrap: balance;
-  color: var(--text-primary);
+.uploadIcon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: 18px;
+  background: #7c3aed;
+  color: white;
+  font-size: 30px;
+  font-weight: 900;
 }
 
-.intro p {
-  max-width: 440px;
-  font-size: 18px;
-  line-height: 32px;
-  text-wrap: balance;
-  color: var(--text-secondary);
+.dropZone h3 {
+  margin: 22px 0 8px;
+  font-size: 24px;
 }
 
-.intro a {
-  font-weight: 500;
-  color: var(--text-primary);
+.dropZone p {
+  max-width: 360px;
+  margin: 0;
+  color: #667085;
+  line-height: 1.6;
 }
 
-.ctas {
+.fileButton {
+  margin-top: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: #101828;
+  color: white;
+  padding: 14px 22px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.privacyNote {
   display: flex;
-  flex-direction: row;
-  width: 100%;
-  max-width: 440px;
-  gap: 16px;
+  gap: 10px;
+  align-items: center;
+  margin-top: 18px;
+  color: #475467;
   font-size: 14px;
 }
 
-.ctas a {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 40px;
-  padding: 0 16px;
-  border-radius: 128px;
-  border: 1px solid transparent;
-  transition: 0.2s;
-  cursor: pointer;
-  width: fit-content;
-  font-weight: 500;
+.privacyNote p {
+  margin: 0;
 }
 
-a.primary {
-  background: var(--text-primary);
-  color: var(--background);
-  gap: 8px;
+.workflow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-top: 42px;
 }
 
-a.secondary {
-  border-color: var(--button-secondary-border);
+.workflow div {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 24px;
 }
 
-/* Enable hover only on non-touch devices */
-@media (hover: hover) and (pointer: fine) {
-  a.primary:hover {
-    background: var(--button-primary-hover);
-    border-color: transparent;
+.workflow span {
+  color: #7c3aed;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.workflow h2 {
+  margin: 12px 0 8px;
+}
+
+.workflow p {
+  margin: 0;
+  color: #667085;
+  line-height: 1.55;
+}
+
+@media (prefers-color-scheme: dark) {
+  .page {
+    background:
+      radial-gradient(circle at top, rgba(124, 58, 237, 0.28), transparent 34%),
+      linear-gradient(180deg, #070713 0%, #111827 100%);
+    color: #f8fafc;
   }
 
-  a.secondary:hover {
-    background: var(--button-secondary-hover);
-    border-color: transparent;
+  .navigation a,
+  .heroContent p,
+  .fileLimit,
+  .dropZone p,
+  .privacyNote,
+  .workflow p {
+    color: #a4a7ae;
+  }
+
+  .uploadPanel,
+  .workflow div {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(20, 20, 36, 0.78);
+  }
+
+  .dropZone {
+    border-color: rgba(168, 85, 247, 0.36);
+    background: linear-gradient(180deg, rgba(124, 58, 237, 0.14), rgba(20, 20, 36, 0.72));
+  }
+
+  .fileButton {
+    background: #ffffff;
+    color: #101828;
+  }
+}
+
+@media (max-width: 860px) {
+  .navigation {
+    display: none;
+  }
+
+  .hero,
+  .workflow {
+    grid-template-columns: 1fr;
+  }
+
+  .main {
+    padding-top: 24px;
+  }
+
+  .uploadHeader {
+    flex-direction: column;
+  }
+
+  .dropZone {
+    min-height: 300px;
+  }
+}
+
+.themeToggle {
+  border: 1px solid rgba(124, 58, 237, 0.22);
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.08);
+  color: #6d28d9;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.uploadTabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 18px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  padding: 8px;
+}
+
+.uploadTabs button {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #667085;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.uploadTabs .activeTab {
+  background: #ffffff;
+  color: #101828;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+}
+
+:global(html[data-theme="dark"]) .page {
+  background:
+    radial-gradient(circle at top, rgba(124, 58, 237, 0.28), transparent 34%),
+    linear-gradient(180deg, #070713 0%, #111827 100%);
+  color: #f8fafc;
+}
+
+:global(html[data-theme="dark"]) .navigation a,
+:global(html[data-theme="dark"]) .heroContent p,
+:global(html[data-theme="dark"]) .fileLimit,
+:global(html[data-theme="dark"]) .dropZone p,
+:global(html[data-theme="dark"]) .privacyNote,
+:global(html[data-theme="dark"]) .workflow p {
+  color: #a4a7ae;
+}
+
+:global(html[data-theme="dark"]) .uploadPanel,
+:global(html[data-theme="dark"]) .workflow div {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(20, 20, 36, 0.78);
+}
+
+:global(html[data-theme="dark"]) .dropZone {
+  border-color: rgba(168, 85, 247, 0.36);
+  background: linear-gradient(180deg, rgba(124, 58, 237, 0.14), rgba(20, 20, 36, 0.72));
+}
+
+:global(html[data-theme="dark"]) .fileButton,
+:global(html[data-theme="dark"]) .uploadTabs .activeTab {
+  background: #ffffff;
+  color: #101828;
+}
+
+:global(html[data-theme="dark"]) .uploadTabs {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+:global(html[data-theme="dark"]) .uploadTabs button {
+  color: #a4a7ae;
+}
+
+:global(html[data-theme="dark"]) .themeToggle {
+  border-color: rgba(168, 85, 247, 0.36);
+  background: rgba(124, 58, 237, 0.18);
+  color: #ddd6fe;
+}
+
+:global(html[data-theme="light"]) .page {
+  background:
+    radial-gradient(circle at top, rgba(124, 58, 237, 0.18), transparent 34%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  color: #101828;
+}
+
+.brandLogo {
+    object-fit: contain;
+    width: auto;
+    height: 80px;
+    display: block;
+    border-radius: 23px;
+}
+
+@media (max-width: 600px) {
+  .brandLogo {
+    height: 42px;
+    border-radius: 12px;
+  }
+}
+
+.hiddenFileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.dropZone {
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.dropZoneActive {
+  border-color: #7c3aed;
+  background: rgba(124, 58, 237, 0.14);
+  box-shadow: 0 0 0 5px rgba(124, 58, 237, 0.1);
+  transform: scale(1.01);
+}
+
+.previewBox {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.previewImage {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: 260px;
+  border-radius: 20px;
+  object-fit: contain;
+  background: rgba(15, 23, 42, 0.06);
+}
+
+.previewMeta {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.previewMeta strong {
+  width: 100%;
+  overflow: hidden;
+  color: #101828;
+  font-size: 15px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.previewMeta span {
+  color: #667085;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.removeFileButton {
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 999px;
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.fileError {
+  margin: 14px 0 0;
+  border-radius: 12px;
+  background: rgba(220, 38, 38, 0.08);
+  color: #dc2626;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+:global(html[data-theme="dark"]) .previewImage {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+:global(html[data-theme="dark"]) .previewMeta strong {
+  color: #f8fafc;
+}
+
+:global(html[data-theme="dark"]) .previewMeta span {
+  color: #a4a7ae;
+}
+
+:global(html[data-theme="dark"]) .dropZoneActive {
+  border-color: #a855f7;
+  background: rgba(124, 58, 237, 0.2);
+  box-shadow: 0 0 0 5px rgba(168, 85, 247, 0.12);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dropZone:hover {
+    border-color: rgba(124, 58, 237, 0.58);
+  }
+
+  .removeFileButton:hover {
+    background: rgba(220, 38, 38, 0.14);
   }
 }
 
 @media (max-width: 600px) {
-  .main {
-    padding: 48px 24px;
+  .previewImage {
+    height: 220px;
   }
 
-  .intro {
-    gap: 16px;
+  .previewBox {
+    gap: 14px;
   }
 
-  .intro h1 {
-    font-size: 32px;
-    line-height: 40px;
-    letter-spacing: -1.92px;
+  .uploadTabs {
+    grid-template-columns: 1fr;
+    border-radius: 20px;
+  }
+
+  .uploadTabs button {
+    width: 100%;
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  .logo {
-    filter: invert();
+.uploadActionButton {
+  width: 100%;
+  margin-top: 18px;
+  border: 0;
+  border-radius: 999px;
+  background: #7c3aed;
+  color: #ffffff;
+  padding: 15px 22px;
+  font-size: 15px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.uploadActionButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.progressTrack {
+  width: 100%;
+  height: 10px;
+  margin-top: 14px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.14);
+}
+
+.progressTrack span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #7c3aed;
+  transition: width 0.2s ease;
+}
+
+.jobNote {
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+  color: #667085;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.jobNote strong {
+  color: #101828;
+}
+
+:global(html[data-theme="dark"]) .jobNote {
+  color: #a4a7ae;
+}
+
+:global(html[data-theme="dark"]) .jobNote strong {
+  color: #f8fafc;
+}
+
+/* ============================================================================
+ * Upload Completion Actions
+ * ============================================================================
+ */
+
+.uploadSuccess {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 16px;
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: 16px;
+  background: rgba(34, 197, 94, 0.08);
+  padding: 14px 16px;
+}
+
+.uploadSuccess strong {
+  color: #15803d;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.uploadSuccess span {
+  color: #475467;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.secondaryActionButton {
+  width: 100%;
+  margin-top: 14px;
+  border: 1px solid rgba(124, 58, 237, 0.24);
+  border-radius: 999px;
+  background: transparent;
+  color: #6d28d9;
+  padding: 14px 22px;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.secondaryActionButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+:global(html[data-theme="dark"]) .uploadSuccess {
+  border-color: rgba(74, 222, 128, 0.22);
+  background: rgba(34, 197, 94, 0.1);
+}
+
+:global(html[data-theme="dark"]) .uploadSuccess strong {
+  color: #86efac;
+}
+
+:global(html[data-theme="dark"]) .uploadSuccess span {
+  color: #a4a7ae;
+}
+
+:global(html[data-theme="dark"]) .secondaryActionButton {
+  border-color: rgba(168, 85, 247, 0.38);
+  color: #ddd6fe;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .secondaryActionButton:hover:not(:disabled) {
+    border-color: #7c3aed;
+    background: rgba(124, 58, 237, 0.08);
   }
 
-  .page {
-    --background: #000;
-    --foreground: #000;
-
-    --text-primary: #ededed;
-    --text-secondary: #999;
-
-    --button-primary-hover: #ccc;
-    --button-secondary-hover: #1a1a1a;
-    --button-secondary-border: #1a1a1a;
+  :global(html[data-theme="dark"])
+    .secondaryActionButton:hover:not(:disabled) {
+    border-color: #a855f7;
+    background: rgba(124, 58, 237, 0.16);
   }
 }

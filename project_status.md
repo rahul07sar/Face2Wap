@@ -376,13 +376,16 @@ Status
 
 ## Phase 3.5 — Upload UI ⏳
 
-🚧 In Progress
+✅ Done
 
 - Light Mode
 - Dark Mode
 - Theme persistence
 - Drag & Drop
 - File picker
+
+🚧 In Progress
+
 - Image preview
 - Video preview
 - Upload progress
