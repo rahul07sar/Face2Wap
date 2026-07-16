@@ -50,9 +50,12 @@ services:
         condition: service_healthy
 
   worker:
+    platform: linux/amd64
     build:
       context: .
       dockerfile: services/worker/Dockerfile
+      args:
+        FACE2WAP_RUNTIME_VARIANT: cpu
     container_name: face2wap-worker
     env_file:
       - .env

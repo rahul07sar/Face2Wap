@@ -34,9 +34,29 @@ def get_client_ip(request: Request) -> str:
 
 def enforce_rate_limit(connection: psycopg.Connection, request: Request) -> None:
     """Enforce a simple fixed-window rate limit by client IP."""
+    enforce_scoped_rate_limit(
+        connection,
+        request,
+    )
+
+
+def enforce_scoped_rate_limit(
+    connection: psycopg.Connection,
+    request: Request,
+    *,
+    scope: str = "default",
+    max_requests: int | None = None,
+) -> None:
+    """Enforce a simple fixed-window rate limit by client IP and scope."""
 
     client_ip = get_client_ip(request)
-    rate_key = f"ip:{client_ip}"
+    normalized_scope = scope.strip() or "default"
+    allowed_requests = (
+        max_requests
+        if max_requests is not None
+        else settings.rate_limit_max_requests
+    )
+    rate_key = f"ip:{client_ip}:{normalized_scope}"
 
     with connection.cursor() as cursor:
         cursor.execute(
@@ -75,7 +95,7 @@ def enforce_rate_limit(connection: psycopg.Connection, request: Request) -> None
 
     request_count = result["request_count"]
 
-    if request_count > settings.rate_limit_max_requests:
+    if request_count > allowed_requests:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="Too many requests. Please try again later.",

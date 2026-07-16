@@ -8,7 +8,8 @@
  *
  * Provides the client-side Face2Wap upload workflow, including theme
  * persistence, upload mode selection, source and target file selection,
- * previews, upload progress, validation, retries, and backend integration.
+ * previews, upload progress, validation, retries, backend integration, image
+ * processing dispatch, and live job-status polling.
  *
  * ============================================================================
  */
@@ -40,6 +41,14 @@ type UploadState =
   | "completed"
   | "failed";
 
+type ProcessingState =
+  | "idle"
+  | "queueing"
+  | "queued"
+  | "processing"
+  | "completed"
+  | "failed";
+
 type UploadStep = 1 | 2;
 
 type CreateJobResponse = {
@@ -65,12 +74,36 @@ type CompleteUploadResponse = {
   jobReadyForQueue: boolean;
 };
 
+type QueueImageSwapResponse = {
+  jobId: string;
+  jobType: string;
+  status: string;
+  progressPercent: number;
+};
+
+type JobStatusResponse = {
+  jobId: string;
+  jobType: string;
+  status: string;
+  progressPercent: number;
+  errorMessage: string | null;
+  expiresAt: string;
+};
+
+type JobResultFileResponse = {
+  jobId: string;
+  status: string;
+  resultUrl: string | null;
+};
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const THEME_STORAGE_KEY =
   "face2wap-theme";
+
+const STATUS_POLL_INTERVAL_MS =
+  4_000;
 
 const SOURCE_IMAGE_ACCEPT_TYPES = [
   "image/jpeg",
@@ -126,6 +159,23 @@ function formatFileSize(sizeBytes: number): string {
     1024 /
     1024
   ).toFixed(2)} MB`;
+}
+
+
+function normalizeProgress(
+  progressPercent: number,
+): number {
+  if (!Number.isFinite(progressPercent)) {
+    return 0;
+  }
+
+  return Math.min(
+    100,
+    Math.max(
+      0,
+      Math.round(progressPercent),
+    ),
+  );
 }
 
 
@@ -200,11 +250,29 @@ export default function UploadClient() {
   const [jobReadyForQueue, setJobReadyForQueue] =
     useState(false);
 
+  const [processingState, setProcessingState] =
+    useState<ProcessingState>("idle");
+
+  const [processingProgress, setProcessingProgress] =
+    useState(0);
+
+  const [processingError, setProcessingError] =
+    useState<string | null>(null);
+
+  const [resultImageUrl, setResultImageUrl] =
+  useState<string | null>(null);
+
+  const [downloadingResult, setDownloadingResult] =
+    useState(false);  
+
   const sourceInputRef =
     useRef<HTMLInputElement | null>(null);
 
   const targetInputRef =
     useRef<HTMLInputElement | null>(null);
+
+  const statusPollTimeoutRef =
+    useRef<number | null>(null);
 
 
   useEffect(() => {
@@ -264,6 +332,44 @@ export default function UploadClient() {
       URL.revokeObjectURL(nextPreviewUrl);
     };
   }, [targetFile]);
+
+
+  useEffect(() => {
+    return () => {
+      if (
+        statusPollTimeoutRef.current !==
+        null
+      ) {
+        window.clearTimeout(
+          statusPollTimeoutRef.current,
+        );
+      }
+    };
+  }, []);
+
+
+  function stopStatusPolling() {
+    if (
+      statusPollTimeoutRef.current === null
+    ) {
+      return;
+    }
+
+    window.clearTimeout(
+      statusPollTimeoutRef.current,
+    );
+
+    statusPollTimeoutRef.current = null;
+  }
+
+
+  function resetProcessingState() {
+    stopStatusPolling();
+
+    setProcessingState("idle");
+    setProcessingProgress(0);
+    setProcessingError(null);
+  }
 
 
   function toggleTheme() {
@@ -401,6 +507,8 @@ export default function UploadClient() {
     setSourceError(null);
     setSourceUploadState("idle");
     setSourceUploadProgress(0);
+
+    resetProcessingState();
   }
 
 
@@ -426,6 +534,8 @@ export default function UploadClient() {
     setTargetUploadState("idle");
     setTargetUploadProgress(0);
     setJobReadyForQueue(false);
+
+    resetProcessingState();
   }
 
 
@@ -517,6 +627,8 @@ export default function UploadClient() {
 
 
   function resetEntireWorkflow() {
+    stopStatusPolling();
+
     setCurrentStep(1);
 
     setSourceFile(null);
@@ -534,6 +646,13 @@ export default function UploadClient() {
     setJobId(null);
     setJobToken(null);
     setJobReadyForQueue(false);
+
+    setProcessingState("idle");
+    setProcessingProgress(0);
+    setProcessingError(null);
+
+    setResultImageUrl(null);
+    setDownloadingResult(false);
   }
 
 
@@ -543,6 +662,8 @@ export default function UploadClient() {
     setTargetUploadState("idle");
     setTargetUploadProgress(0);
     setJobReadyForQueue(false);
+    resetProcessingState();
+    setResultImageUrl(null);
   }
 
 
@@ -835,6 +956,299 @@ export default function UploadClient() {
     }
   }
 
+async function loadCompletedResult(
+  activeJobId: string,
+): Promise<void> {
+  if (!jobToken) {
+    throw new Error(
+      "The result is unavailable at the moment, please try again later or contact support if the issue persists.",
+    );
+  }
+
+  const apiBaseUrl =
+    requireApiBaseUrl();
+
+  const response = await fetch(
+    `${apiBaseUrl}/jobs/${activeJobId}/result?token=${encodeURIComponent(
+      jobToken,
+    )}`,
+    {
+      method: "GET",
+      headers: {
+        Accept: "application/json",
+      },
+      cache: "no-store",
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(
+      await readErrorMessage(
+        response,
+        "Could not load the generated result.",
+      ),
+    );
+  }
+
+  const result =
+    (await response.json()) as JobResultFileResponse;
+
+  if (!result.resultUrl) {
+    throw new Error(
+      "The generated result is unavailable.",
+    );
+  }
+
+  const absoluteResultUrl =
+    result.resultUrl.startsWith("http://") ||
+    result.resultUrl.startsWith("https://")
+      ? result.resultUrl
+      : `${apiBaseUrl}${result.resultUrl}`;
+
+  setResultImageUrl(
+    absoluteResultUrl,
+  );
+}
+
+async function downloadCompletedResult() {
+  if (
+    !resultImageUrl ||
+    downloadingResult
+  ) {
+    return;
+  }
+
+  try {
+    setDownloadingResult(true);
+    setProcessingError(null);
+
+    const separator =
+      resultImageUrl.includes("?")
+        ? "&"
+        : "?";
+
+    const response = await fetch(
+      `${resultImageUrl}${separator}download=true`,
+      {
+        method: "GET",
+        headers: {
+          Accept: "image/*",
+        },
+        cache: "no-store",
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        await readErrorMessage(
+          response,
+          "Could not download the generated result.",
+        ),
+      );
+    }
+
+    const resultBlob =
+      await response.blob();
+
+    const downloadUrl =
+      URL.createObjectURL(resultBlob);
+
+    const downloadLink =
+      document.createElement("a");
+
+    downloadLink.href =
+      downloadUrl;
+
+    downloadLink.download =
+      "face2wap-result.png";
+
+    document.body.appendChild(
+      downloadLink,
+    );
+
+    downloadLink.click();
+    downloadLink.remove();
+
+    URL.revokeObjectURL(
+      downloadUrl,
+    );
+  } catch (error) {
+    setProcessingError(
+      error instanceof Error
+        ? error.message
+        : "Could not download the generated result.",
+    );
+  } finally {
+    setDownloadingResult(false);
+  }
+}
+
+  async function pollJobStatus(
+    activeJobId: string,
+  ): Promise<void> {
+    try {
+      const apiBaseUrl =
+        requireApiBaseUrl();
+
+      const response = await fetch(
+        `${apiBaseUrl}/jobs/${activeJobId}/status`,
+        {
+          method: "GET",
+          headers: {
+            Accept: "application/json",
+          },
+          cache: "no-store",
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          await readErrorMessage(
+            response,
+            "Could not read processing status.",
+          ),
+        );
+      }
+
+      const result =
+        (await response.json()) as JobStatusResponse;
+
+      const nextProgress =
+        normalizeProgress(
+          result.progressPercent,
+        );
+
+      setProcessingProgress(nextProgress);
+
+      if (result.status === "COMPLETED") {
+        stopStatusPolling();
+
+        setProcessingState("completed");
+        setProcessingProgress(100);
+        setProcessingError(null);
+
+          await loadCompletedResult(
+           activeJobId,
+        );
+
+        return;
+      }
+
+      if (
+        result.status === "FAILED" ||
+        result.status === "EXPIRED" ||
+        result.status === "BLOCKED"
+      ) {
+        stopStatusPolling();
+
+        setProcessingState("failed");
+
+        setProcessingError(
+          result.errorMessage ||
+            `Processing stopped with status ${result.status}.`,
+        );
+
+        return;
+      }
+
+      if (result.status === "PROCESSING") {
+        setProcessingState("processing");
+      } else {
+        setProcessingState("queued");
+      }
+
+      statusPollTimeoutRef.current =
+        window.setTimeout(
+          () => {
+            void pollJobStatus(activeJobId);
+          },
+          STATUS_POLL_INTERVAL_MS,
+        );
+    } catch (error) {
+      stopStatusPolling();
+
+      setProcessingState("failed");
+
+      setProcessingError(
+        error instanceof Error
+          ? error.message
+          : "Could not track processing progress.",
+      );
+    }
+  }
+
+
+  async function startImageProcessing() {
+    if (
+      uploadMode !== "photo" ||
+      !jobId ||
+      !jobToken ||
+      !jobReadyForQueue ||
+      processingState === "queueing" ||
+      processingState === "queued" ||
+      processingState === "processing" ||
+      processingState === "completed"
+    ) {
+      return;
+    }
+
+    try {
+      const apiBaseUrl =
+        requireApiBaseUrl();
+
+      stopStatusPolling();
+
+      setProcessingState("queueing");
+      setProcessingProgress(0);
+      setProcessingError(null);
+      setResultImageUrl(null);
+
+      const response = await fetch(
+        `${apiBaseUrl}/jobs/${jobId}/process-image?token=${encodeURIComponent(
+          jobToken,
+        )}`,
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          await readErrorMessage(
+            response,
+            "Could not start the face swap.",
+          ),
+        );
+      }
+
+      const result =
+        (await response.json()) as QueueImageSwapResponse;
+
+      setProcessingState("queued");
+
+      setProcessingProgress(
+        normalizeProgress(
+          result.progressPercent,
+        ),
+      );
+
+      void pollJobStatus(jobId);
+    } catch (error) {
+      stopStatusPolling();
+
+      setProcessingState("failed");
+
+      setProcessingError(
+        error instanceof Error
+          ? error.message
+          : "Could not start the face swap.",
+      );
+    }
+  }
+
 
   const sourceUploadBusy = [
     "creating",
@@ -848,6 +1262,12 @@ export default function UploadClient() {
     "uploading",
     "completing",
   ].includes(targetUploadState);
+
+  const processingBusy = [
+    "queueing",
+    "queued",
+    "processing",
+  ].includes(processingState);
 
   const targetAccept =
     uploadMode === "video"
@@ -868,6 +1288,32 @@ export default function UploadClient() {
     uploadMode === "video"
       ? "Choose video"
       : "Choose image";
+
+  const processingStatusTitle =
+    processingState === "queueing"
+      ? "Starting face swap"
+      : processingState === "queued"
+        ? "Face swap queued"
+        : processingState === "processing"
+          ? "Processing face swap"
+          : processingState === "completed"
+            ? "Face swap completed"
+            : processingState === "failed"
+              ? "Face swap failed"
+              : "";
+
+  const processingStatusMessage =
+    processingState === "queueing"
+      ? "Submitting your image face-swap job."
+      : processingState === "queued"
+        ? "Your job is waiting for the worker."
+        : processingState === "processing"
+          ? `Your images are being processed. ${processingProgress}% complete.`
+          : processingState === "completed"
+            ? "Your face-swap result has been generated successfully."
+            : processingState === "failed"
+              ? "The face-swap job could not be completed."
+              : "";
 
 
   return (
@@ -1254,7 +1700,8 @@ export default function UploadClient() {
                   }
                   type="button"
                   disabled={
-                    targetUploadBusy
+                    targetUploadBusy ||
+                    processingBusy
                   }
                   onClick={(event) => {
                     event.stopPropagation();
@@ -1371,7 +1818,8 @@ export default function UploadClient() {
             </p>
           ) : null}
 
-          {jobReadyForQueue ? (
+          {jobReadyForQueue &&
+          processingState === "idle" ? (
             <div
               className={
                 styles.uploadSuccess
@@ -1389,12 +1837,151 @@ export default function UploadClient() {
             </div>
           ) : null}
 
+          {jobReadyForQueue &&
+          uploadMode === "photo" ? (
+            <button
+              className={
+                styles.uploadActionButton
+              }
+              type="button"
+              disabled={
+                processingBusy ||
+                processingState ===
+                  "completed" ||
+                processingState ===
+                  "failed"
+              }
+              onClick={
+                startImageProcessing
+              }
+            >
+              {processingState ===
+                "idle" &&
+                "Start Face Swap"}
+
+              {processingState ===
+                "queueing" &&
+                "Starting Face Swap..."}
+
+              {processingState ===
+                "queued" &&
+                "Face Swap Queued"}
+
+              {processingState ===
+                "processing" &&
+                `Processing ${processingProgress}%`}
+
+              {processingState ===
+                "completed" &&
+                "Face Swap Completed"}
+
+              {processingState ===
+                "failed" &&
+                "Face Swap Failed"}
+            </button>
+          ) : null}
+
+          {processingState !== "idle" ? (
+            <>
+              <div
+                className={
+                  styles.uploadSuccess
+                }
+                role="status"
+                aria-live="polite"
+              >
+                <strong>
+                  {processingStatusTitle}
+                </strong>
+
+                <span>
+                  {processingStatusMessage}
+                </span>
+              </div>
+
+              <div
+                className={
+                  styles.progressTrack
+                }
+                role="progressbar"
+                aria-label="Face-swap processing progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={
+                  processingProgress
+                }
+              >
+                <span
+                  style={{
+                    width: `${processingProgress}%`,
+                  }}
+                />
+              </div>
+            </>
+          ) : null}
+
+          {processingState === "completed" &&
+            resultImageUrl ? (
+              <div
+                className={styles.previewBox}
+                role="region"
+                aria-label="Generated result"
+              >
+                <img
+                  className={styles.previewImage}
+                  src={resultImageUrl}
+                  alt="Generated Face2Wap result"
+                />
+
+                <button
+                  className={
+                    styles.uploadActionButton
+                  }
+                  type="button"
+                  disabled={
+                    downloadingResult
+                  }
+                  onClick={
+                    downloadCompletedResult
+                  }
+                >
+                  {downloadingResult
+                    ? "Preparing download..."
+                    : "Download Result"}
+                </button>
+
+                <button
+                  className={
+                    styles.secondaryActionButton
+                  }
+                  type="button"
+                  onClick={
+                    resetEntireWorkflow
+                  }
+                >
+                  Swap Another Image
+                </button>
+              </div>
+            ) : null}
+
+          {processingError ? (
+            <p
+              className={styles.fileError}
+              role="alert"
+            >
+              {processingError}
+            </p>
+          ) : null}
+
           <button
             className={
               styles.secondaryActionButton
             }
             type="button"
-            disabled={targetUploadBusy}
+            disabled={
+              targetUploadBusy ||
+              processingBusy
+            }
             onClick={() =>
               setCurrentStep(1)
             }

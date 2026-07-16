@@ -151,7 +151,7 @@ class ImageFaceSwapEngine:
                 from face2face import Face2Face
             except ImportError as error:
                 raise ImageFaceSwapError(
-                    "SocAIty/face2face is not installed in the worker.",
+                    "Face-swap functionality is temporarily not available.",
                 ) from error
 
             try:
@@ -160,7 +160,7 @@ class ImageFaceSwapEngine:
                 )
             except Exception as error:
                 raise ImageFaceSwapError(
-                    "The image face-swap model could not be initialized.",
+                    "Face swap processing could not be initialized, try again later.",
                 ) from error
 
         return self._engine
@@ -200,7 +200,20 @@ class ImageFaceSwapEngine:
             generated_image = engine.swap_img_to_img(
                 str(source_path),
                 str(target_path),
+                enhance_face_model=None,
             )
+        except Exception:
+            raise ImageFaceSwapError(
+                "The face-swap failed to process the images.",
+            )
+
+        # Restore/enhance the swapped face.
+        try:
+            generated_image = engine.enhance_faces(
+                generated_image,
+                model="gfpgan_1.4",
+            )
+
         except Exception as error:
             raise ImageFaceSwapError(
                 "The face-swap engine failed to process the images.",

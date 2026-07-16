@@ -16,12 +16,16 @@ from datetime import datetime, timedelta, timezone
 
 import psycopg
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, status, File, UploadFile, BackgroundTasks
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 
 from app.audit import write_audit_log
 from app.config import settings
 from app.database import get_connection
-from app.rate_limit import enforce_rate_limit, get_client_ip
+from app.rate_limit import (
+    enforce_rate_limit,
+    enforce_scoped_rate_limit,
+    get_client_ip,
+)
 from app.schemas import (
     CreateJobRequest,
     CreateJobResponse,
@@ -51,6 +55,7 @@ from app.image_processing_service import (
     dispatch_image_swap_job,
     queue_image_swap_job,
 )
+from app.storage.local_file_service import resolve_local_result_file
 
 # ============================================================================
 # Application
@@ -177,7 +182,14 @@ def get_job_status(
 ):
     """Return public status for an anonymous job."""
 
-    enforce_rate_limit(connection, request)
+    enforce_scoped_rate_limit(
+        connection,
+        request,
+        scope=f"job-status:{job_id}",
+        max_requests=(
+            settings.job_status_rate_limit_max_requests
+        ),
+    )
 
     with connection.cursor() as cursor:
         cursor.execute(
@@ -271,10 +283,15 @@ def get_job_result(
     with connection.cursor() as cursor:
         cursor.execute(
             """
-            SELECT object_path
+            SELECT
+                object_path,
+                mime_type,
+                storage_provider
             FROM job_assets
             WHERE job_id = %s
-              AND asset_type = 'RESULT'
+            AND asset_type = 'RESULT'
+            AND upload_status = 'COMPLETED'
+            AND validation_status = 'VALIDATED'
             ORDER BY created_at DESC
             LIMIT 1
             """,
@@ -293,12 +310,158 @@ def get_job_result(
 
     connection.commit()
 
+    result_url = None
+
+    if result_asset:
+        result_url = (
+            f"/jobs/{job_id}/result/file"
+            f"?token={token}"
+        )
+
     return {
         "jobId": job_id,
         "status": job["status"],
-        "resultUrl": result_asset["object_path"] if result_asset else None,
+        "resultUrl": result_url,
+    }
+# ============================================================================
+# Result File Delivery
+# ============================================================================
+
+@app.get("/jobs/{job_id}/result/file")
+def get_job_result_file(
+    job_id: str,
+    request: Request,
+    token: str = Query(...),
+    download: bool = Query(False),
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Return a completed local result file for preview or download."""
+
+    enforce_rate_limit(connection, request)
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+                job_token_hash,
+                status,
+                expires_at
+            FROM jobs
+            WHERE job_id = %s
+            """,
+            (job_id,),
+        )
+
+        job = cursor.fetchone()
+
+    if not job:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Job not found.",
+        )
+
+    if job["expires_at"] <= datetime.now(timezone.utc):
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="Job has expired.",
+        )
+
+    if not verify_job_token(
+        token,
+        job["job_token_hash"],
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Invalid job token.",
+        )
+
+    if job["status"] != "COMPLETED":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Job result is not ready.",
+        )
+
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT
+                object_path,
+                mime_type,
+                storage_provider
+            FROM job_assets
+            WHERE job_id = %s
+              AND asset_type = 'RESULT'
+              AND upload_status = 'COMPLETED'
+              AND validation_status = 'VALIDATED'
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (job_id,),
+        )
+
+        result_asset = cursor.fetchone()
+
+    if not result_asset:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Result file was not found.",
+        )
+
+    if result_asset["storage_provider"] != "local":
+        raise HTTPException(
+            status_code=status.HTTP_501_NOT_IMPLEMENTED,
+            detail="Result delivery is unavailable for this storage provider.",
+        )
+
+    try:
+        result_path = resolve_local_result_file(
+            result_asset["object_path"],
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Result file was not found.",
+        ) from error
+
+    if not result_path.is_file():
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Result file was not found.",
+        )
+
+    write_audit_log(
+        connection,
+        action=(
+            "JOB_RESULT_DOWNLOADED"
+            if download
+            else "JOB_RESULT_FILE_VIEWED"
+        ),
+        job_id=job_id,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+
+    connection.commit()
+
+    response_headers = {
+        "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
     }
 
+    return FileResponse(
+        path=result_path,
+        media_type=(
+            result_asset["mime_type"]
+            or "application/octet-stream"
+        ),
+        filename=result_path.name if download else None,
+        headers=response_headers,
+        content_disposition_type=(
+            "attachment"
+            if download
+            else "inline"
+        ),
+    )
 # ============================================================================
 # Upload and Storage System
 # ============================================================================

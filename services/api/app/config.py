@@ -26,6 +26,7 @@ class Settings(BaseSettings):
 
     rate_limit_window_seconds: int = 60
     rate_limit_max_requests: int = 20
+    job_status_rate_limit_max_requests: int = 120
 
     storage_provider: str = "local"
     local_upload_dir: str = "storage/uploads"
