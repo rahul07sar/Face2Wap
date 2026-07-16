@@ -71,7 +71,7 @@ class FaceFusionFaceSwapEngine(FaceSwapEngine):
 
         if not target_path.is_file():
             raise FaceSwapEngineError(
-                "Target image was not found.",
+                "Target media was not found.",
             )
 
         if (
@@ -123,7 +123,7 @@ class FaceFusionFaceSwapEngine(FaceSwapEngine):
             "huggingface",
         ]
 
-    def _build_command(
+    def _build_headless_command(
         self,
         *,
         source_path: Path,
@@ -221,53 +221,14 @@ class FaceFusionFaceSwapEngine(FaceSwapEngine):
             "a diagnostic message."
         )
 
-    @property
-    def name(self) -> str:
-        """Return the stable engine name."""
-
-        return "facefusion"
-
-    def swap_image(
+    def _execute_facefusion(
         self,
         *,
-        source_path: Path,
-        target_path: Path,
+        command: list[str],
+        program_path: Path,
         output_path: Path,
     ) -> Path:
-        """Execute a FaceFusion headless image face swap."""
-
-        self._validate_paths(
-            source_path=source_path,
-            target_path=target_path,
-            output_path=output_path,
-        )
-
-        program_path = (
-            self
-            ._resolve_facefusion_program_path()
-        )
-
-        command = self._build_command(
-            source_path=source_path,
-            target_path=target_path,
-            output_path=output_path,
-            program_path=program_path,
-        )
-
-        # Prevent a stale result from being accepted if this execution fails.
-        output_path.unlink(
-            missing_ok=True,
-        )
-
-        logger.info(
-            "Starting FaceFusion image processing.",
-            extra={
-                "engine": self.name,
-                "source_path": str(source_path),
-                "target_path": str(target_path),
-                "output_path": str(output_path),
-            },
-        )
+        """Run FaceFusion, validate the result file, and return it."""
 
         try:
             completed_process = subprocess.run(
@@ -354,6 +315,62 @@ class FaceFusionFaceSwapEngine(FaceSwapEngine):
                 "The generated face-swap result is unavailable.",
             )
 
+        return output_path
+
+    @property
+    def name(self) -> str:
+        """Return the stable engine name."""
+
+        return "facefusion"
+
+    def swap_image(
+        self,
+        *,
+        source_path: Path,
+        target_path: Path,
+        output_path: Path,
+    ) -> Path:
+        """Execute a FaceFusion headless image face swap."""
+
+        self._validate_paths(
+            source_path=source_path,
+            target_path=target_path,
+            output_path=output_path,
+        )
+
+        program_path = (
+            self
+            ._resolve_facefusion_program_path()
+        )
+
+        command = self._build_headless_command(
+            source_path=source_path,
+            target_path=target_path,
+            output_path=output_path,
+            program_path=program_path,
+        )
+
+        # Prevent a stale result from being accepted if this execution fails.
+        output_path.unlink(
+            missing_ok=True,
+        )
+
+        logger.info(
+            "Starting FaceFusion image processing.",
+            extra={
+                "engine": self.name,
+                "source_path": str(source_path),
+                "target_path": str(target_path),
+                "output_path": str(output_path),
+            },
+        )
+
+        output_path = self._execute_facefusion(
+            command=command,
+            program_path=program_path,
+            output_path=output_path,
+        )
+
         logger.info(
             "FaceFusion image processing completed successfully.",
             extra={
@@ -362,6 +379,64 @@ class FaceFusionFaceSwapEngine(FaceSwapEngine):
                 "output_size_bytes": (
                     output_path.stat().st_size
                 ),
+            },
+        )
+
+        return output_path
+
+    def swap_video(
+        self,
+        *,
+        source_path: Path,
+        target_path: Path,
+        output_path: Path,
+    ) -> Path:
+        """Execute a FaceFusion headless video face swap."""
+
+        self._validate_paths(
+            source_path=source_path,
+            target_path=target_path,
+            output_path=output_path,
+        )
+
+        program_path = (
+            self
+            ._resolve_facefusion_program_path()
+        )
+
+        command = self._build_headless_command(
+            source_path=source_path,
+            target_path=target_path,
+            output_path=output_path,
+            program_path=program_path,
+        )
+
+        output_path.unlink(
+            missing_ok=True,
+        )
+
+        logger.info(
+            "Starting FaceFusion video processing.",
+            extra={
+                "engine": self.name,
+                "source_path": str(source_path),
+                "target_path": str(target_path),
+                "output_path": str(output_path),
+            },
+        )
+
+        output_path = self._execute_facefusion(
+            command=command,
+            program_path=program_path,
+            output_path=output_path,
+        )
+
+        logger.info(
+            "FaceFusion video processing completed successfully.",
+            extra={
+                "engine": self.name,
+                "output_path": str(output_path),
+                "output_size_bytes": output_path.stat().st_size,
             },
         )
 
