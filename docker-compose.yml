@@ -42,7 +42,11 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
     container_name: face2wap-web
+    environment:
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL}
     ports:
       - "3000:3000"
     depends_on:
@@ -56,6 +60,8 @@ services:
       dockerfile: services/worker/Dockerfile
       args:
         FACE2WAP_RUNTIME_VARIANT: cpu
+        FACE2WAP_INSTALL_FACEFUSION: "1"
+        FACEFUSION_REF: "3.7.1"
     container_name: face2wap-worker
     env_file:
       - .env
