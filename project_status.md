@@ -10,7 +10,7 @@ Legend
 
 ## Project Goal
 
-Face2Wap is an open, production-grade face swap platform supporting both image and video face swapping using the SocAIty/face2face engine. The platform is designed to run locally during development while remaining cloud-ready for Google Cloud Platform deployment without architectural changes.
+Face2Wap is an open, production-grade face swap platform supporting both image and video face swapping through a pluggable face-swap engine architecture. The currently supported engines are FaceFusion (default) and SocAIty/face2face (legacy/fallback). The platform is designed to run locally during development while remaining cloud-ready for Google Cloud Platform deployment without architectural changes.
 
 ---
 
@@ -36,8 +36,14 @@ Frontend
 Backend
 - FastAPI
 
-AI Engine
-- SocAIty/face2face
+AI Engines
+- FaceFusion (Default)
+- SocAIty/face2face (Legacy/Fallback)
+
+Engine Architecture
+- Strategy Pattern
+- Factory Pattern
+- Pluggable FaceSwapEngine Interface
 
 Video Processing
 - FFmpeg
@@ -87,7 +93,12 @@ Queue / Worker Dispatch
 Python Worker
       │
       ▼
-SocAIty/face2face
+Face-Swap Engine Factory
+      │
+ ┌────┴────┐
+ ▼         ▼
+FaceFusion SocAIty/face2face
+(Default)   (Fallback)
       │
       ▼
 Result Storage
@@ -118,6 +129,19 @@ The worker consumes assets through the storage provider abstraction, allowing lo
 
 ---
 
+
+
+## Face-Swap Engine Architecture
+
+Face2Wap uses a pluggable engine architecture.
+
+Current Engines
+
+- FaceFusion (Default)
+- SocAIty/face2face (Legacy/Fallback)
+
+The worker depends only on the `FaceSwapEngine` interface. New engines can be added by implementing the interface and registering them in the engine factory.
+
 ## Repository Structure
 
 ```txt
@@ -129,6 +153,11 @@ apps/
 services/
     api/
     worker/
+        app/
+            face_swap_engine_base.py
+            face_swap_engine_factory.py
+            facefusion_face_swap_engine.py
+            socaity_face_swap_engine.py
 
 database/
     migrations/
@@ -433,7 +462,14 @@ Status
 - Validated target asset resolution
 - Local upload path protection
 - Worker temporary result path protection
+- FaceSwapEngine abstraction
+- Face-swap engine factory
+- Strategy-based engine selection
+- Configuration-driven engine selection
 - SocAIty/face2face engine adapter
+- FaceFusion engine adapter
+- FaceFusion headless CLI integration
+- Engine-independent processing pipeline
 - Lazy model initialization
 - Local CPU-compatible development processing
 - Image face-swap inference
@@ -590,6 +626,9 @@ Status
 - Worker result tests
 - Worker/PostgreSQL integration tests
 - Manual end-to-end image processing verification
+- FaceFusion end-to-end verification
+- Engine factory verification
+- Engine selection verification
 
 🚧 Remaining
 
@@ -626,7 +665,7 @@ Status
 ## MVP
 
 - Anonymous jobs
-- Image Face Swap
+- Image Face Swap (FaceFusion + SocAIty)
 - Video Face Swap
 - Local Storage
 - GCS Support
