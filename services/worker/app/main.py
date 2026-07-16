@@ -23,7 +23,10 @@ from app.image_processing_service import (
     ImageProcessingError,
     process_image_swap_job,
 )
-
+from app.video_processing_service import (
+    VideoProcessingError,
+    process_video_swap_job,
+)
 
 # ============================================================================
 # Application
@@ -104,6 +107,36 @@ def process_image_job(
         )
 
     except ImageProcessingError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(error),
+        ) from error
+
+# ============================================================================
+# Video Face-Swap Processing
+# ============================================================================
+
+@app.post(
+    "/internal/jobs/{job_id}/process-video",
+    dependencies=[
+        Depends(verify_worker_api_token),
+    ],
+)
+def process_video_job(
+    job_id: str,
+    connection: psycopg.Connection = Depends(
+        get_connection,
+    ),
+):
+    """Process one queued video face-swap job."""
+
+    try:
+        return process_video_swap_job(
+            connection,
+            job_id=job_id,
+        )
+
+    except VideoProcessingError as error:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(error),

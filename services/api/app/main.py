@@ -55,6 +55,10 @@ from app.image_processing_service import (
     dispatch_image_swap_job,
     queue_image_swap_job,
 )
+from app.video_processing_service import (
+    dispatch_video_swap_job,
+    queue_video_swap_job,
+)
 from app.storage.local_file_service import resolve_local_result_file
 
 # ============================================================================
@@ -753,6 +757,45 @@ def process_image_swap(
 
     background_tasks.add_task(
         dispatch_image_swap_job,
+        job_id=job_id,
+    )
+
+    return result
+
+# ============================================================================
+# Video Face-Swap Processing
+# ============================================================================
+
+@app.post("/jobs/{job_id}/process-video")
+def process_video_swap(
+    job_id: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
+    token: str = Query(...),
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Queue a validated video face-swap job for worker processing."""
+
+    enforce_rate_limit(connection, request)
+
+    result = queue_video_swap_job(
+        connection,
+        job_id=job_id,
+        job_token=token,
+    )
+
+    write_audit_log(
+        connection,
+        action="VIDEO_SWAP_QUEUED",
+        job_id=job_id,
+        ip_address=get_client_ip(request),
+        user_agent=request.headers.get("user-agent"),
+    )
+
+    connection.commit()
+
+    background_tasks.add_task(
+        dispatch_video_swap_job,
         job_id=job_id,
     )
 

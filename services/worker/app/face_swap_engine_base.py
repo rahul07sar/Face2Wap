@@ -6,10 +6,10 @@ File:        face_swap_engine_base.py
 Module:      Worker / Face-Swap Engine
 Description:
 
-Defines the common contract implemented by Face2Wap image face-swap engines.
+Defines the common contract implemented by Face2Wap face-swap engines.
 
 The processing pipeline depends on this interface rather than a specific
-third-party engine, allowing SocAIty, FaceFusion, and future engines to be
+third-party engine, allowing FaceFusion, SocAIty, and future engines to be
 selected without changing job, storage, result, or API workflows.
 
 ============================================================================
@@ -32,7 +32,7 @@ class FaceSwapEngineError(RuntimeError):
 # ============================================================================
 
 class FaceSwapEngine(ABC):
-    """Common interface for Face2Wap image face-swap engines."""
+    """Common interface for Face2Wap face-swap engines."""
 
     @property
     @abstractmethod
@@ -53,3 +53,28 @@ class FaceSwapEngine(ABC):
         Implementations must write the generated image to ``output_path`` and
         return that same path after confirming that a non-empty file exists.
         """
+
+    @abstractmethod
+    def swap_video(
+        self,
+        *,
+        source_path: Path,
+        target_path: Path,
+        output_path: Path,
+    ) -> Path:
+        """
+        Swap the source identity onto every supported face detected within the
+        target video.
+
+        Implementations must write the generated video to ``output_path`` and
+        return that same path after confirming that a non-empty file exists.
+
+        Implementations are responsible for:
+
+        - decoding the input video
+        - performing face swapping
+        - preserving the audio stream whenever supported
+        - encoding the final output
+        - validating the generated output
+        """
+        

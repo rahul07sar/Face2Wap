@@ -30,7 +30,7 @@ import styles from "../page.module.css";
 
 type ThemeMode = "light" | "dark";
 
-type UploadMode = "photo" | "video" | "gif";
+type UploadMode = "photo" | "video";
 
 type UploadState =
   | "idle"
@@ -121,6 +121,8 @@ const TARGET_VIDEO_ACCEPT_TYPES = [
   "video/mp4",
   "video/webm",
   "video/quicktime",
+  "video/x-msvideo",
+  "video/x-matroska",
 ];
 
 const MAX_SOURCE_IMAGE_SIZE_BYTES =
@@ -130,7 +132,7 @@ const MAX_TARGET_IMAGE_SIZE_BYTES =
   50 * 1024 * 1024;
 
 const MAX_TARGET_VIDEO_SIZE_BYTES =
-  2 * 1024 * 1024 * 1024;
+  5 * 1024 * 1024 * 1024;
 
 
 function requireApiBaseUrl(): string {
@@ -400,14 +402,6 @@ export default function UploadClient() {
       return;
     }
 
-    if (nextMode === "gif") {
-      setSourceError(
-        "GIF face swap support will be enabled after the image and video workflows.",
-      );
-
-      return;
-    }
-
     setUploadMode(nextMode);
     setSourceError(null);
   }
@@ -472,14 +466,14 @@ export default function UploadClient() {
         file.type,
       )
     ) {
-      return "Select an MP4, WebM, or MOV target video.";
+      return "Select an MP4, WebM, MOV, AVI, or MKV target video.";
     }
 
     if (
       file.size >
       MAX_TARGET_VIDEO_SIZE_BYTES
     ) {
-      return "Target video must not exceed 2 GB.";
+      return "Target video must not exceed 5 GB.";
     }
 
     return null;
@@ -1398,16 +1392,6 @@ async function downloadCompletedResult() {
           Video Face Swap
         </button>
 
-        <button
-          type="button"
-          role="tab"
-          aria-selected={false}
-          aria-disabled="true"
-          disabled
-          title="GIF support is planned"
-        >
-          GIF Face Swap
-        </button>
       </div>
 
       {currentStep === 1 ? (
@@ -1728,9 +1712,9 @@ async function downloadCompletedResult() {
                 </h3>
 
                 <p>
-                  Drag and drop the target
-                  file or choose one from
-                  your device.
+                  {uploadMode === "video"
+                    ? "Drag and drop a target video or choose one from your device. MP4, MOV, AVI, MKV, or WebM up to 5 GB."
+                    : "Drag and drop a target image or choose one from your device."}
                 </p>
 
                 <button

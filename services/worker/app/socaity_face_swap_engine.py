@@ -264,6 +264,24 @@ class SocaityFaceSwapEngine(FaceSwapEngine):
 
         return output_path
 
+    def swap_video(
+        self,
+        *,
+        source_path: Path,
+        target_path: Path,
+        output_path: Path,
+    ) -> Path:
+        """
+        Video face swapping is not supported by the SocAIty engine.
+
+        Face2Wap reserves video processing for engines that provide native
+        video inference support (currently FaceFusion).
+        """
+
+        raise ImageFaceSwapError(
+            "The SocAIty face-swap engine does not support video processing.",
+        )
+    
 socaity_face_swap_engine = SocaityFaceSwapEngine(
     device_id=settings.face_swap_device_id,
 )
