@@ -47,12 +47,14 @@ Database
 
 Worker
 - Python GPU Worker
+- Local CPU-compatible worker mode for development
 
 Storage
 - Local Storage (Development)
 - Google Cloud Storage (Production)
 
 Queue
+- Internal API-to-worker dispatch (Development)
 - Cloud Tasks / PubSub (Production)
 
 Deployment
@@ -79,7 +81,7 @@ Storage Provider
 (Local / GCS)
       │
       ▼
-Queue
+Queue / Worker Dispatch
       │
       ▼
 Python Worker
@@ -248,7 +250,7 @@ Status
 
 ---
 
-## Phase 3.2 — Upload Pipeline 🚧
+## Phase 3.2 — Upload Pipeline ✅
 
 Completed
 
@@ -303,7 +305,7 @@ Completed
 
 Status
 
-🚧 In Progress | Core upload pipeline, validation, metadata extraction, failure cleanup, and retry support working
+✅ Completed
 
 ---
 
@@ -355,12 +357,15 @@ Google Cloud Storage
 - Automatic provider switching
 - GCS upload progress compatibility
 
+Status
+
+🚧 In Progress | Local Provider completed; GCS provider remains
 
 ---
 
-## Phase 3.4 — Cleanup ⏳
+## Phase 3.4 — Cleanup ✅
 
-✅ Done
+Completed
 
 - Upload expiry cleanup
 - Result expiry cleanup
@@ -370,47 +375,93 @@ Google Cloud Storage
 
 Status
 
-✅ Done
+✅ Completed
 
 ---
 
-## Phase 3.5 — Upload UI ⏳
+## Phase 3.5 — Upload UI 🚧
 
-🚧 In Progress
+✅ Done
 
 - Light Mode
 - Dark Mode
 - Theme persistence
 - Drag & Drop
 - File picker
-- Image preview
-- Video preview
+- Source image preview
+- Target image preview
+- Target video preview
 - Upload progress
-- Cancel upload
-- Retry upload
-- Mobile responsive
-- Desktop responsive
-
-Status
+- Upload success state
+- Upload failure state
+- Retry upload action
+- Desktop responsive layout
+- Mobile responsive layout
+- Styled back-to-source action
+- Start Face Swap button
+- Processing status polling
+- Live processing percentage
+- Queued, processing, completed, and failed UI states
 
 🚧 In Progress
 
----
-
-# Phase 4 — Image Face Swap ⏳
-
-- Queue integration
-- Worker integration
-- Face detection
-- Face swap
-- Face restoration
-- Save result
+- Cancel active upload
 - Result preview
-- Failure handling
+- Result download action
+- Sanitized user-facing processing errors
 
 Status
 
-⏳ Todo
+🚧 In Progress | Upload and processing UI working; result delivery remains
+
+---
+
+# Phase 4 — Image Face Swap 🚧
+
+✅ Done
+
+- Image processing API endpoint
+- Anonymous job-token verification
+- Queue readiness validation
+- PENDING to QUEUED transition
+- Protected API-to-worker dispatch
+- Worker API token validation
+- Worker image-job claiming
+- PostgreSQL row locking
+- QUEUED to PROCESSING transition
+- Validated source asset resolution
+- Validated target asset resolution
+- Local upload path protection
+- Worker temporary result path protection
+- SocAIty/face2face engine adapter
+- Lazy model initialization
+- Local CPU-compatible development processing
+- Image face-swap inference
+- Processing progress updates
+- Temporary result generation
+- Result file storage
+- Result asset registration
+- Job completion update
+- Temporary file cleanup
+- Processing failure persistence
+- Frontend Start Face Swap action
+- Frontend status polling
+- Frontend live progress display
+- End-to-end image processing completed successfully
+
+🚧 In Progress
+
+- Result API delivery integration
+- Result image preview in the frontend
+- Result download action
+- Safe centralized error sanitization
+- Face restoration/enhancement
+- Processing retry support
+- Dedicated Phase 4 unit and integration tests
+
+Status
+
+🚧 In Progress | Core image face swap works end to end; result presentation and hardening remain
 
 ---
 
@@ -434,7 +485,18 @@ Status
 
 ---
 
-# Phase 6 — Queue & Worker Reliability ⏳
+# Phase 6 — Queue & Worker Reliability 🚧
+
+✅ Done for local development
+
+- Protected internal API-to-worker dispatch
+- Worker request timeout configuration
+- Duplicate processing prevention
+- Database-backed job claiming
+- Worker progress persistence
+- Worker failure persistence
+
+⏳ Production queue work
 
 - Cloud Tasks
 - Pub/Sub
@@ -448,7 +510,7 @@ Status
 
 Status
 
-⏳ Todo
+🚧 In Progress | Local dispatch works; production queue reliability remains
 
 ---
 
@@ -487,36 +549,61 @@ Status
 
 ---
 
-# Phase 9 — Frontend ⏳
+# Phase 9 — Frontend 🚧
+
+✅ Done
 
 - Home
 - Upload
-- Job Progress
+- Upload previews
+- Upload progress
+- Job processing progress
+- Processing success state
+- Processing failure state
+- Light/Dark theme
+
+🚧 In Progress
+
 - Results
-- Error
+- Result preview
+- Result download
+- Error hardening
 - Privacy
 - Terms
 - Safety
 
 Status
 
-⏳ Todo
+🚧 In Progress
 
 ---
 
-# Phase 10 — Testing ⏳
+# Phase 10 — Testing 🚧
 
-- API Tests
-- Upload Tests
-- Worker Tests
-- Queue Tests
-- Image Tests
-- Video Tests
-- End-to-End Tests
+✅ Existing coverage
+
+- Upload tests
+- Local storage tests
+- Result storage tests
+- Path-traversal tests
+- Cleanup tests
+- Worker result tests
+- Worker/PostgreSQL integration tests
+- Manual end-to-end image processing verification
+
+🚧 Remaining
+
+- Image engine adapter tests
+- Image job-claim tests
+- Image processing orchestration tests
+- API queue/dispatch tests
+- Frontend processing tests
+- Video tests
+- Full automated end-to-end tests
 
 Status
 
-⏳ Todo
+🚧 In Progress
 
 ---
 
