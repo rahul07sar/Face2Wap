@@ -1306,7 +1306,7 @@ async function downloadCompletedResult() {
     processingState === "queueing"
       ? "Submitting your image face-swap job."
       : processingState === "queued"
-        ? "Your job is waiting for the worker."
+        ? "Your job is queued and will be processed soon."
         : processingState === "processing"
           ? `Your images are being processed. ${processingProgress}% complete.`
           : processingState === "completed"

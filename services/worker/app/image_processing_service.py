@@ -20,9 +20,10 @@ from typing import Optional
 
 import psycopg
 
-from app.image_face_swap_engine import (
+from app.face_swap_engine_base import FaceSwapEngineError
+from app.face_swap_engine_factory import get_face_swap_engine
+from app.socaity_face_swap_engine import (
     ImageFaceSwapError,
-    image_face_swap_engine,
     prepare_worker_temp_image_path,
     resolve_worker_upload_path,
 )
@@ -149,7 +150,9 @@ def process_image_swap_job(
 
         connection.commit()
 
-        image_face_swap_engine.swap_image(
+        face_swap_engine = get_face_swap_engine()
+
+        face_swap_engine.swap_image(
             source_path=source_path,
             target_path=target_path,
             output_path=generated_temp_path,
@@ -180,6 +183,7 @@ def process_image_swap_job(
         }
 
     except (
+        FaceSwapEngineError,
         ImageJobError,
         ImageFaceSwapError,
         ImageProcessingError,
