@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS job_assets (
     mime_type VARCHAR(128),
     size_bytes BIGINT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT fk_job_assets_job
         FOREIGN KEY (job_id)
