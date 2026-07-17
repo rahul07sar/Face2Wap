@@ -19,6 +19,9 @@ from fastapi import HTTPException, status
 
 from app.config import settings
 from app.storage.local_writer import resolve_local_upload_path
+from app.video_upload_service import (
+    reset_video_upload_metadata,
+)
 
 
 def retry_failed_upload(
@@ -92,6 +95,12 @@ def retry_failed_upload(
             WHERE id = %s
             """,
             (upload_expires_at, asset_id),
+        )
+
+    if asset["asset_type"] == "TARGET_VIDEO":
+        reset_video_upload_metadata(
+            connection,
+            asset_id=asset_id,
         )
 
     return {

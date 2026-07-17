@@ -23,6 +23,12 @@ FaceSwapEngineName = Literal[
     "facefusion",
 ]
 
+FaceSelectorMode = Literal[
+    "many",
+    "one",
+    "reference",
+]
+
 
 class Settings(BaseSettings):
     """Face2Wap worker configuration."""
@@ -44,10 +50,30 @@ class Settings(BaseSettings):
     facefusion_face_enhancer_model: str = "gfpgan_1.4"
     facefusion_face_enhancer_blend: int = 80
     facefusion_face_enhancer_weight: float = 1.0
+    facefusion_face_swapper_weight: float = 1.0
+    facefusion_face_selector_mode: FaceSelectorMode = "reference"
+    facefusion_reference_face_position: int = 0
+    facefusion_reference_face_distance: float = 0.45
+    facefusion_video_face_swapper_model: str = "inswapper_128"
+    facefusion_video_face_swapper_pixel_boost: str = "256x256"
+    facefusion_video_face_swapper_weight: float = 1.0
+    facefusion_video_face_selector_mode: FaceSelectorMode = "reference"
+    facefusion_video_reference_face_position: int = 0
+    facefusion_video_reference_face_distance: float = 0.45
+    facefusion_video_enable_face_enhancer: bool = False
+    facefusion_video_face_enhancer_model: str = "gfpgan_1.4"
+    facefusion_video_face_enhancer_blend: int = 80
+    facefusion_video_face_enhancer_weight: float = 1.0
+    facefusion_video_memory_strategy: str = "tolerant"
+    facefusion_output_video_encoder: str = "libx264"
+    facefusion_output_video_preset: str = "ultrafast"
+    facefusion_output_video_quality: int = 75
+    facefusion_output_video_scale: float = 1.0
     facefusion_log_level: str = "error"
     facefusion_keep_temp: bool = False
     facefusion_output_image_quality: int = 95
     facefusion_process_timeout_seconds: int = 900
+    facefusion_video_process_timeout_seconds: int = 1800
 
     storage_provider: str = "local"
 

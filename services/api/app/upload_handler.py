@@ -21,6 +21,9 @@ from fastapi import HTTPException, UploadFile, status
 from app.file_hash import create_sha256_hasher
 from app.file_metadata import extract_file_metadata
 from app.storage.local_writer import resolve_local_upload_path
+from app.video_upload_service import (
+    update_video_upload_metadata,
+)
 
 
 CHUNK_SIZE_BYTES = 64 * 1024
@@ -217,6 +220,15 @@ async def upload_job_asset(
                 metadata["duration_seconds"],
                 asset_id,
             ),
+        )
+
+    if asset["asset_type"] == "TARGET_VIDEO":
+        update_video_upload_metadata(
+            connection,
+            asset_id=asset_id,
+            width=metadata["width"],
+            height=metadata["height"],
+            duration_seconds=metadata["duration_seconds"],
         )
 
     return {

@@ -74,7 +74,7 @@ type CompleteUploadResponse = {
   jobReadyForQueue: boolean;
 };
 
-type QueueImageSwapResponse = {
+type QueueSwapResponse = {
   jobId: string;
   jobType: string;
   status: string;
@@ -103,7 +103,7 @@ const THEME_STORAGE_KEY =
   "face2wap-theme";
 
 const STATUS_POLL_INTERVAL_MS =
-  4_000;
+  1_000;
 
 const SOURCE_IMAGE_ACCEPT_TYPES = [
   "image/jpeg",
@@ -258,10 +258,13 @@ export default function UploadClient() {
   const [processingProgress, setProcessingProgress] =
     useState(0);
 
+  const [reportedProcessingProgress, setReportedProcessingProgress] =
+    useState(0);
+
   const [processingError, setProcessingError] =
     useState<string | null>(null);
 
-  const [resultImageUrl, setResultImageUrl] =
+  const [resultMediaUrl, setResultMediaUrl] =
   useState<string | null>(null);
 
   const [downloadingResult, setDownloadingResult] =
@@ -274,6 +277,9 @@ export default function UploadClient() {
     useRef<HTMLInputElement | null>(null);
 
   const statusPollTimeoutRef =
+    useRef<number | null>(null);
+
+  const progressAnimationIntervalRef =
     useRef<number | null>(null);
 
 
@@ -346,8 +352,110 @@ export default function UploadClient() {
           statusPollTimeoutRef.current,
         );
       }
+
+      if (
+        progressAnimationIntervalRef.current !==
+        null
+      ) {
+        window.clearInterval(
+          progressAnimationIntervalRef.current,
+        );
+      }
     };
   }, []);
+
+
+  useEffect(() => {
+    if (
+      progressAnimationIntervalRef.current !==
+      null
+    ) {
+      window.clearInterval(
+        progressAnimationIntervalRef.current,
+      );
+
+      progressAnimationIntervalRef.current =
+        null;
+    }
+
+    if (
+      processingState !== "queued" &&
+      processingState !== "processing"
+    ) {
+      return;
+    }
+
+    progressAnimationIntervalRef.current =
+      window.setInterval(
+        () => {
+          setProcessingProgress(
+            (currentProgress) => {
+              const progressCap =
+                processingState === "queued"
+                  ? Math.max(
+                      reportedProcessingProgress,
+                      10,
+                    )
+                  : Math.max(
+                      reportedProcessingProgress,
+                      20,
+                    );
+
+              if (
+                currentProgress >=
+                progressCap
+              ) {
+                return currentProgress;
+              }
+
+              if (
+                currentProgress <
+                progressCap
+              ) {
+                return Math.min(
+                  progressCap,
+                  currentProgress +
+                    Math.max(
+                      1,
+                      Math.ceil(
+                        (
+                          progressCap -
+                          currentProgress
+                        ) / 4,
+                      ),
+                    ),
+                );
+              }
+
+              return Math.min(
+                progressCap,
+                currentProgress + 1,
+              );
+            },
+          );
+        },
+        processingState === "queued"
+          ? 500
+          : 250,
+      );
+
+    return () => {
+      if (
+        progressAnimationIntervalRef.current !==
+        null
+      ) {
+        window.clearInterval(
+          progressAnimationIntervalRef.current,
+        );
+
+        progressAnimationIntervalRef.current =
+          null;
+      }
+    };
+  }, [
+    processingState,
+    reportedProcessingProgress,
+  ]);
 
 
   function stopStatusPolling() {
@@ -370,6 +478,7 @@ export default function UploadClient() {
 
     setProcessingState("idle");
     setProcessingProgress(0);
+    setReportedProcessingProgress(0);
     setProcessingError(null);
   }
 
@@ -645,7 +754,7 @@ export default function UploadClient() {
     setProcessingProgress(0);
     setProcessingError(null);
 
-    setResultImageUrl(null);
+    setResultMediaUrl(null);
     setDownloadingResult(false);
   }
 
@@ -657,7 +766,7 @@ export default function UploadClient() {
     setTargetUploadProgress(0);
     setJobReadyForQueue(false);
     resetProcessingState();
-    setResultImageUrl(null);
+    setResultMediaUrl(null);
   }
 
 
@@ -999,14 +1108,14 @@ async function loadCompletedResult(
       ? result.resultUrl
       : `${apiBaseUrl}${result.resultUrl}`;
 
-  setResultImageUrl(
+    setResultMediaUrl(
     absoluteResultUrl,
   );
 }
 
 async function downloadCompletedResult() {
   if (
-    !resultImageUrl ||
+    !resultMediaUrl ||
     downloadingResult
   ) {
     return;
@@ -1017,16 +1126,19 @@ async function downloadCompletedResult() {
     setProcessingError(null);
 
     const separator =
-      resultImageUrl.includes("?")
+      resultMediaUrl.includes("?")
         ? "&"
         : "?";
 
     const response = await fetch(
-      `${resultImageUrl}${separator}download=true`,
+      `${resultMediaUrl}${separator}download=true`,
       {
         method: "GET",
         headers: {
-          Accept: "image/*",
+          Accept:
+            uploadMode === "video"
+              ? "video/*"
+              : "image/*",
         },
         cache: "no-store",
       },
@@ -1054,7 +1166,9 @@ async function downloadCompletedResult() {
       downloadUrl;
 
     downloadLink.download =
-      "face2wap-result.png";
+      uploadMode === "video"
+        ? "face2wap-result.mp4"
+        : "face2wap-result.png";
 
     document.body.appendChild(
       downloadLink,
@@ -1112,13 +1226,24 @@ async function downloadCompletedResult() {
           result.progressPercent,
         );
 
-      setProcessingProgress(nextProgress);
+      setReportedProcessingProgress(
+        nextProgress,
+      );
+
+      setProcessingProgress(
+        (currentProgress) =>
+          Math.max(
+            currentProgress,
+            nextProgress,
+          ),
+      );
 
       if (result.status === "COMPLETED") {
         stopStatusPolling();
 
         setProcessingState("completed");
         setProcessingProgress(100);
+        setReportedProcessingProgress(100);
         setProcessingError(null);
 
           await loadCompletedResult(
@@ -1172,9 +1297,8 @@ async function downloadCompletedResult() {
   }
 
 
-  async function startImageProcessing() {
+  async function startProcessing() {
     if (
-      uploadMode !== "photo" ||
       !jobId ||
       !jobToken ||
       !jobReadyForQueue ||
@@ -1194,13 +1318,16 @@ async function downloadCompletedResult() {
 
       setProcessingState("queueing");
       setProcessingProgress(0);
+      setReportedProcessingProgress(0);
       setProcessingError(null);
-      setResultImageUrl(null);
+      setResultMediaUrl(null);
 
       const response = await fetch(
-        `${apiBaseUrl}/jobs/${jobId}/process-image?token=${encodeURIComponent(
-          jobToken,
-        )}`,
+        `${apiBaseUrl}/jobs/${jobId}/${
+          uploadMode === "video"
+            ? "process-video"
+            : "process-image"
+        }?token=${encodeURIComponent(jobToken)}`,
         {
           method: "POST",
           headers: {
@@ -1219,11 +1346,17 @@ async function downloadCompletedResult() {
       }
 
       const result =
-        (await response.json()) as QueueImageSwapResponse;
+        (await response.json()) as QueueSwapResponse;
 
       setProcessingState("queued");
 
       setProcessingProgress(
+        normalizeProgress(
+          result.progressPercent,
+        ),
+      );
+
+      setReportedProcessingProgress(
         normalizeProgress(
           result.progressPercent,
         ),
@@ -1282,32 +1415,6 @@ async function downloadCompletedResult() {
     uploadMode === "video"
       ? "Choose video"
       : "Choose image";
-
-  const processingStatusTitle =
-    processingState === "queueing"
-      ? "Starting face swap"
-      : processingState === "queued"
-        ? "Face swap queued"
-        : processingState === "processing"
-          ? "Processing face swap"
-          : processingState === "completed"
-            ? "Face swap completed"
-            : processingState === "failed"
-              ? "Face swap failed"
-              : "";
-
-  const processingStatusMessage =
-    processingState === "queueing"
-      ? "Submitting your image face-swap job."
-      : processingState === "queued"
-        ? "Your job is queued and will be processed soon."
-        : processingState === "processing"
-          ? `Your images are being processed. ${processingProgress}% complete.`
-          : processingState === "completed"
-            ? "Your face-swap result has been generated successfully."
-            : processingState === "failed"
-              ? "The face-swap job could not be completed."
-              : "";
 
 
   return (
@@ -1802,27 +1909,7 @@ async function downloadCompletedResult() {
             </p>
           ) : null}
 
-          {jobReadyForQueue &&
-          processingState === "idle" ? (
-            <div
-              className={
-                styles.uploadSuccess
-              }
-              role="status"
-            >
-              <strong>
-                Files uploaded successfully
-              </strong>
-
-              <span>
-                Your face-swap job is ready
-                for processing.
-              </span>
-            </div>
-          ) : null}
-
-          {jobReadyForQueue &&
-          uploadMode === "photo" ? (
+          {jobReadyForQueue ? (
             <button
               className={
                 styles.uploadActionButton
@@ -1836,12 +1923,16 @@ async function downloadCompletedResult() {
                   "failed"
               }
               onClick={
-                startImageProcessing
+                startProcessing
               }
             >
               {processingState ===
                 "idle" &&
-                "Start Face Swap"}
+                `Start ${
+                  uploadMode === "video"
+                    ? "Video"
+                    : "Face"
+                } Swap`}
 
               {processingState ===
                 "queueing" &&
@@ -1865,57 +1956,27 @@ async function downloadCompletedResult() {
             </button>
           ) : null}
 
-          {processingState !== "idle" ? (
-            <>
-              <div
-                className={
-                  styles.uploadSuccess
-                }
-                role="status"
-                aria-live="polite"
-              >
-                <strong>
-                  {processingStatusTitle}
-                </strong>
-
-                <span>
-                  {processingStatusMessage}
-                </span>
-              </div>
-
-              <div
-                className={
-                  styles.progressTrack
-                }
-                role="progressbar"
-                aria-label="Face-swap processing progress"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={
-                  processingProgress
-                }
-              >
-                <span
-                  style={{
-                    width: `${processingProgress}%`,
-                  }}
-                />
-              </div>
-            </>
-          ) : null}
-
           {processingState === "completed" &&
-            resultImageUrl ? (
+            resultMediaUrl ? (
               <div
                 className={styles.previewBox}
                 role="region"
                 aria-label="Generated result"
               >
-                <img
-                  className={styles.previewImage}
-                  src={resultImageUrl}
-                  alt="Generated Face2Wap result"
-                />
+                {uploadMode === "video" ? (
+                  <video
+                    className={styles.previewImage}
+                    src={resultMediaUrl}
+                    controls
+                    preload="metadata"
+                  />
+                ) : (
+                  <img
+                    className={styles.previewImage}
+                    src={resultMediaUrl}
+                    alt="Generated Face2Wap result"
+                  />
+                )}
 
                 <button
                   className={
@@ -1943,7 +2004,9 @@ async function downloadCompletedResult() {
                     resetEntireWorkflow
                   }
                 >
-                  Swap Another Image
+                  {uploadMode === "video"
+                    ? "Swap Another Video"
+                    : "Swap Another Image"}
                 </button>
               </div>
             ) : null}

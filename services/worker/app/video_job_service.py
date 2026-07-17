@@ -76,20 +76,34 @@ def claim_video_swap_job(
         cursor.execute(
             """
             SELECT
-                id,
-                asset_type,
-                object_path,
-                mime_type,
-                storage_provider
-            FROM job_assets
-            WHERE job_id = %s
-              AND asset_type IN (
+                ja.id,
+                ja.asset_type,
+                CASE
+                    WHEN ja.asset_type = 'TARGET_VIDEO'
+                    THEN jvu.object_path
+                    ELSE ja.object_path
+                END AS object_path,
+                CASE
+                    WHEN ja.asset_type = 'TARGET_VIDEO'
+                    THEN jvu.mime_type
+                    ELSE ja.mime_type
+                END AS mime_type,
+                ja.storage_provider,
+                jvu.asset_id AS video_upload_asset_id,
+                jvu.width AS video_width,
+                jvu.height AS video_height,
+                jvu.duration_seconds
+            FROM job_assets ja
+            LEFT JOIN job_video_uploads jvu
+                ON jvu.asset_id = ja.id
+            WHERE ja.job_id = %s
+              AND ja.asset_type IN (
                   'SOURCE_FACE_IMAGE',
                   'TARGET_VIDEO'
               )
-              AND upload_status = 'COMPLETED'
-              AND validation_status = 'VALIDATED'
-            ORDER BY id ASC
+              AND ja.upload_status = 'COMPLETED'
+              AND ja.validation_status = 'VALIDATED'
+            ORDER BY ja.id ASC
             """,
             (job_id,),
         )
@@ -120,6 +134,11 @@ def claim_video_swap_job(
         if target_asset is None:
             raise VideoJobError(
                 "Validated target video was not found.",
+            )
+
+        if not target_asset["video_upload_asset_id"]:
+            raise VideoJobError(
+                "Validated target video metadata was not found.",
             )
 
         if (

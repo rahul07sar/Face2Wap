@@ -6,6 +6,7 @@ WORKDIR /app
 
 ARG FACE2WAP_RUNTIME_VARIANT=gpu
 ARG FACE2WAP_INSTALL_FACEFUSION=0
+ARG FACE2WAP_INSTALL_SOCAITY=0
 ARG FACEFUSION_REF=3.7.1
 
 RUN apt-get update \
@@ -18,8 +19,13 @@ RUN apt-get update \
 COPY services/worker/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN if [ "$FACE2WAP_INSTALL_SOCAITY" = "1" ]; then \
+      pip install --no-cache-dir socaity-face2face; \
+    fi
+
 # Local development containers do not ship with CUDA runtime libraries.
-# Swap the GPU runtime package for the CPU runtime when requested by Compose.
+# When optional SocAIty dependencies or other packages pull in the GPU build
+# of ONNX Runtime, replace it with the CPU package for the local worker.
 RUN if [ "$FACE2WAP_RUNTIME_VARIANT" = "cpu" ]; then \
       pip uninstall -y onnxruntime-gpu && \
       pip install --no-cache-dir "onnxruntime>=1.23.0"; \

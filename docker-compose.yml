@@ -54,13 +54,13 @@ services:
         condition: service_healthy
 
   worker:
-    platform: linux/amd64
     build:
       context: .
       dockerfile: services/worker/Dockerfile
       args:
         FACE2WAP_RUNTIME_VARIANT: cpu
         FACE2WAP_INSTALL_FACEFUSION: "1"
+        FACE2WAP_INSTALL_SOCAITY: "0"
         FACEFUSION_REF: "3.7.1"
     container_name: face2wap-worker
     env_file:
@@ -69,6 +69,7 @@ services:
       - "8001:8001"
     volumes:
       - ./storage:/app/storage
+      - face2wap_facefusion_assets:/opt/facefusion/.assets
 
   cleanup:
     build:
@@ -88,3 +89,4 @@ services:
 
 volumes:
   face2wap_postgres_data:
+  face2wap_facefusion_assets:
