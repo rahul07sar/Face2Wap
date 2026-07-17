@@ -156,17 +156,24 @@ def queue_video_swap_job(
         cursor.execute(
             """
             SELECT
-                asset_type,
-                upload_status,
-                validation_status,
-                object_path
-            FROM job_assets
-            WHERE job_id = %s
-              AND asset_type IN (
+                ja.asset_type,
+                ja.upload_status,
+                ja.validation_status,
+                CASE
+                    WHEN ja.asset_type = 'TARGET_VIDEO'
+                    THEN jvu.object_path
+                    ELSE ja.object_path
+                END AS object_path,
+                jvu.asset_id AS video_upload_asset_id
+            FROM job_assets ja
+            LEFT JOIN job_video_uploads jvu
+                ON jvu.asset_id = ja.id
+            WHERE ja.job_id = %s
+              AND ja.asset_type IN (
                   'SOURCE_FACE_IMAGE',
                   'TARGET_VIDEO'
               )
-            ORDER BY id ASC
+            ORDER BY ja.id ASC
             """,
             (job_id,),
         )
@@ -180,6 +187,10 @@ def queue_video_swap_job(
                 asset["upload_status"] == "COMPLETED"
                 and asset["validation_status"] == "VALIDATED"
                 and asset["object_path"]
+                and (
+                    asset["asset_type"] != "TARGET_VIDEO"
+                    or asset["video_upload_asset_id"]
+                )
             )
         }
 

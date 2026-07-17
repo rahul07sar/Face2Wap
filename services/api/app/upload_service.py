@@ -19,6 +19,9 @@ from fastapi import HTTPException, status
 from app.config import settings
 from app.storage.factory import get_storage_provider
 from app.upload_validation import validate_upload_request
+from app.video_upload_service import (
+    create_video_upload_record,
+)
 
 
 def prepare_job_upload(
@@ -98,6 +101,17 @@ def prepare_job_upload(
             ),
         )
         asset = cursor.fetchone()
+
+    if asset_type == "TARGET_VIDEO":
+        create_video_upload_record(
+            connection,
+            asset_id=asset["id"],
+            job_id=job_id,
+            object_path=prepared.object_path,
+            mime_type=mime_type,
+            original_filename=filename,
+            size_bytes=size_bytes,
+        )
 
     return {
         "assetId": asset["id"],

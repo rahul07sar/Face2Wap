@@ -45,7 +45,7 @@ class Settings(BaseSettings):
 
     worker_base_url: str
     worker_api_token: str
-    worker_request_timeout_seconds: int = 900
+    worker_request_timeout_seconds: int = 2100
 
     model_config = SettingsConfigDict(
         env_file=".env",
