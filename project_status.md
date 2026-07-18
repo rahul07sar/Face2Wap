@@ -608,13 +608,95 @@ Current remote host
 
 Fresh GPU server setup
 
-- Install Docker
+- Use Ubuntu 22.04 LTS or 24.04 LTS for a fresh rebuild if possible.
+- Install host packages: `git`, `curl`, `ca-certificates`, `gnupg`, `lsb-release`
+- Install Docker Engine from the official Docker apt repository
+- Install Docker plugins: Buildx and Compose
 - Install NVIDIA Container Toolkit
-- Configure Docker GPU runtime
-- Verify GPU with `nvidia-smi`
-- Verify Docker GPU access with `docker run --rm --gpus all nvidia/cuda:12.6.0-base-ubuntu22.04 nvidia-smi`
-- Install `git`
+- Configure Docker to use the NVIDIA runtime
+- Verify GPU on the host with `nvidia-smi`
+- Verify GPU inside Docker with `docker run --rm --gpus all nvidia/cuda:12.6.0-base-ubuntu22.04 nvidia-smi`
 - Add GitHub deploy key for the private Face2Wap repository
+- Clone the repository and create the persistent storage root
+
+Fresh GPU server bootstrap commands
+
+```bash
+apt-get update
+apt-get install -y ca-certificates curl gnupg git lsb-release
+
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+
+cat >/etc/apt/sources.list.d/docker.sources <<EOF
+Types: deb
+URIs: https://download.docker.com/linux/ubuntu
+Suites: $(. /etc/os-release && echo "${UBUNTU_CODENAME:-$VERSION_CODENAME}")
+Components: stable
+Architectures: $(dpkg --print-architecture)
+Signed-By: /etc/apt/keyrings/docker.asc
+EOF
+
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+systemctl enable --now docker
+
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | \
+  gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' | \
+  tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+
+apt-get update
+apt-get install -y nvidia-container-toolkit
+nvidia-ctk runtime configure --runtime=docker
+systemctl restart docker
+
+nvidia-smi
+docker run --rm --gpus all nvidia/cuda:12.6.0-base-ubuntu22.04 nvidia-smi
+```
+
+Fresh repository + storage bootstrap
+
+```bash
+mkdir -p /root/.ssh
+# Add the GitHub deploy key first, then:
+git clone <PRIVATE_REPO_URL> /root/face2wap
+
+mkdir -p /root/face2wap-storage/uploads
+mkdir -p /root/face2wap-storage/results
+mkdir -p /root/face2wap-storage/temp
+
+docker volume create face2wap_facefusion_assets
+```
+
+Fresh env files to create on the server
+
+- `/root/face2wap/.env.api-remote`
+- `/root/face2wap/.env.worker-smoke`
+
+Minimum API env keys
+
+- `DATABASE_URL=...`
+- `JOB_TOKEN_SECRET=...`
+- `CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001`
+- `WORKER_BASE_URL=http://127.0.0.1:8001`
+- `WORKER_API_TOKEN=...`
+
+Minimum worker env keys
+
+DATABASE_URL=postgresql://postgres.gjhtknqwgskppyqjwfap:[Your password, for # replace with %23]@aws-0-ap-southeast-1.>
+WORKER_API_TOKEN=dev-worker-token
+FACE_SWAP_ENGINE=facefusion
+FACEFUSION_EXECUTION_PROVIDER=cuda
+FACEFUSION_EXECUTION_THREAD_COUNT=4
+FACEFUSION_VIDEO_MEMORY_STRATEGY=tolerant
+FACEFUSION_VIDEO_FACE_SWAPPER_MODEL=inswapper_128
+FACEFUSION_VIDEO_FACE_SWAPPER_PIXEL_BOOST=256x256
+FACEFUSION_OUTPUT_VIDEO_QUALITY=60
+FACEFUSION_OUTPUT_VIDEO_SCALE=0.5
+API_BASE_URL=http://204.12.253.252:8000
 
 Remote repository path
 
@@ -636,6 +718,8 @@ Remote worker runtime notes
 
 - Worker health port: `8001`
 - Worker env file: `/root/face2wap/.env.worker-smoke`
+- Worker storage mount: `/root/face2wap-storage:/app/storage`
+- FaceFusion model cache volume: `face2wap_facefusion_assets:/opt/facefusion/.assets`
 - Current tuning being tested:
 - `FACEFUSION_EXECUTION_THREAD_COUNT=4`
 - `FACEFUSION_VIDEO_MEMORY_STRATEGY=tolerant`
@@ -674,6 +758,7 @@ Remote API runtime notes
 
 - API health port: `8000`
 - API env file: `/root/face2wap/.env.api-remote`
+- API storage mount: `/root/face2wap-storage:/app/storage`
 - Required secret: `JOB_TOKEN_SECRET`
 - `DATABASE_URL` must use the working Supabase Session Pooler URL
 - If the DB password contains `#`, it must be URL-encoded as `%23`
@@ -704,17 +789,26 @@ Local web note
 - `NEXT_PUBLIC_API_BASE_URL=http://204.12.253.252:8000`
 - If port `3000` is busy, Next.js may automatically start on `3001`
 
-Current known remote blocker
+Remote storage layout on the GPU host
 
-- Uploads are still being written/read through a local-storage contract.
-- The worker-side failure shows the DB row exists but the input asset is missing at runtime.
-- Current error shape:
-- `Worker input asset does not exist: job_<id>/source_face_image/<file>`
-- Next implementation step is to harden the upload-to-remote-storage handoff so the remote API and remote worker resolve the same physical file path.
+- Uploads: `/root/face2wap-storage/uploads`
+- Results: `/root/face2wap-storage/results`
+- Temp work files: `/root/face2wap-storage/temp`
+- Uploaded assets are stored under:
+- `/root/face2wap-storage/uploads/<job_id>/<asset_type>/<filename>`
+- Result assets are stored under:
+- `/root/face2wap-storage/results/<job_id>/<filename>`
+
+Current remote notes
+
+- Remote API and remote worker now exchange files through protected internal API endpoints.
+- The worker no longer depends on sharing the API container's upload path directly.
+- Long FaceFusion runs can keep the job busy for several minutes.
+- Worker-side processing progress now heartbeats forward during the long FaceFusion step instead of freezing at the initial `20%` or `30%` milestone.
 
 Status
 
-🚧 In Progress | Remote GPU API/worker are up, but remote upload/storage handoff still needs code hardening
+🚧 In Progress | Remote GPU API/worker are up, bootstrap steps are documented, and processing progress has been improved; final production hardening is still pending
 
 ---
 
