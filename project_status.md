@@ -57,7 +57,6 @@ Worker
 
 GPU
 - https://www.databasemart.com/
-
 - Worker is hosted here only web + API in local (check)
 
 Storage
