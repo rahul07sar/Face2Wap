@@ -36,6 +36,9 @@ from app.video_job_service import (
     VideoJobError,
     claim_video_swap_job,
 )
+from app.job_progress_heartbeat import (
+    JobProgressHeartbeat,
+)
 
 
 # ============================================================================
@@ -216,6 +219,7 @@ def process_video_swap_job(
     generated_video_path: Optional[Path] = None
     source_path: Optional[Path] = None
     target_path: Optional[Path] = None
+    processing_heartbeat: Optional[JobProgressHeartbeat] = None
 
     try:
         claimed_job = claim_video_swap_job(
@@ -259,6 +263,16 @@ def process_video_swap_job(
         face_swap_engine = (
             get_face_swap_engine()
         )
+        processing_heartbeat = JobProgressHeartbeat(
+            job_id=job_id,
+            start_progress=20,
+            max_progress=98,
+            total_window_seconds=(
+                settings
+                .facefusion_video_process_timeout_seconds
+            ),
+        )
+        processing_heartbeat.start()
 
         face_swap_engine.swap_video(
             source_path=source_path,
@@ -266,10 +280,13 @@ def process_video_swap_job(
             output_path=generated_video_path,
         )
 
+        processing_heartbeat.stop()
+        processing_heartbeat = None
+
         _update_job_progress(
             connection,
             job_id=job_id,
-            progress_percent=85,
+            progress_percent=99,
         )
 
         connection.commit()
@@ -299,6 +316,10 @@ def process_video_swap_job(
     ) as error:
         connection.rollback()
 
+        if processing_heartbeat is not None:
+            processing_heartbeat.stop()
+            processing_heartbeat = None
+
         try:
             _mark_job_failed(
                 connection,
@@ -319,6 +340,10 @@ def process_video_swap_job(
     except Exception as error:
         connection.rollback()
 
+        if processing_heartbeat is not None:
+            processing_heartbeat.stop()
+            processing_heartbeat = None
+
         try:
             _mark_job_failed(
                 connection,
@@ -338,6 +363,9 @@ def process_video_swap_job(
         ) from error
 
     finally:
+        if processing_heartbeat is not None:
+            processing_heartbeat.stop()
+
         if source_path is not None:
             source_path.unlink(
                 missing_ok=True,
