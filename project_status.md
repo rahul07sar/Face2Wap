@@ -49,24 +49,23 @@ Video Processing
 - FFmpeg
 
 Database
-- PostgreSQL
+- PostgreSQL (hosted in supabase)
 
 Worker
 - Python GPU Worker
 - Local CPU-compatible worker mode for development
 
+GPU
+- https://www.databasemart.com/
+
+- Worker is hosted here only web + API in local (check)
+
 Storage
 - Local Storage (Development)
-- Google Cloud Storage (Production)
 
 Queue
 - Internal API-to-worker dispatch (Development)
 - Cloud Tasks / PubSub (Production)
-
-GPU
-https://www.databasemart.com/
-
-Worker is hoted here only web + API in local (check)
 
 Deployment
 - Docker
