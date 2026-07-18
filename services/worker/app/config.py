@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     """Face2Wap worker configuration."""
 
     database_url: str
+    api_base_url: str = ""
 
     worker_api_token: str
     face_swap_device_id: int = 0
@@ -80,6 +81,7 @@ class Settings(BaseSettings):
     local_upload_dir: str = "/app/storage/uploads"
     local_result_dir: str = "/app/storage/results"
     local_temp_dir: str = "/app/storage/temp"
+    api_transfer_timeout_seconds: int = 2100
 
     model_config = SettingsConfigDict(
         env_file=".env",
