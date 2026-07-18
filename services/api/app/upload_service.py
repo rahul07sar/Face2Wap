@@ -24,6 +24,15 @@ from app.video_upload_service import (
 )
 
 
+def get_upload_expiry_minutes(asset_type: str) -> int:
+    """Return upload slot lifetime in minutes for the asset type."""
+
+    if asset_type == "TARGET_VIDEO":
+        return settings.video_upload_url_expiry_minutes
+
+    return settings.upload_url_expiry_minutes
+
+
 def prepare_job_upload(
     connection: psycopg.Connection,
     *,
@@ -59,7 +68,7 @@ def prepare_job_upload(
         size_bytes=size_bytes,
     )
 
-    expires_in_seconds = settings.upload_url_expiry_minutes * 60
+    expires_in_seconds = get_upload_expiry_minutes(asset_type) * 60
     upload_expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in_seconds)
 
     storage = get_storage_provider()
