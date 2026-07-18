@@ -63,6 +63,11 @@ Queue
 - Internal API-to-worker dispatch (Development)
 - Cloud Tasks / PubSub (Production)
 
+GPU
+https://www.databasemart.com/
+
+Worker is hoted here only web + API in local (check)
+
 Deployment
 - Docker
 - Cloud Run
