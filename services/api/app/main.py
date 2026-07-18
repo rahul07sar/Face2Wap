@@ -59,7 +59,10 @@ from app.video_processing_service import (
     dispatch_video_swap_job,
     queue_video_swap_job,
 )
+from app.internal_worker_auth import verify_internal_worker_token
 from app.storage.local_file_service import resolve_local_result_file
+from app.worker_asset_delivery_service import get_worker_download_asset
+from app.worker_result_ingest_service import ingest_worker_result_upload
 
 # ============================================================================
 # Application
@@ -466,6 +469,69 @@ def get_job_result_file(
             else "inline"
         ),
     )
+
+
+# ============================================================================
+# Internal Worker Asset Delivery
+# ============================================================================
+
+@app.get(
+    "/internal/jobs/{job_id}/assets/{asset_id}/file",
+    dependencies=[
+        Depends(verify_internal_worker_token),
+    ],
+)
+def get_internal_worker_asset_file(
+    job_id: str,
+    asset_id: int,
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Return one validated upload asset for the remote worker."""
+
+    asset = get_worker_download_asset(
+        connection,
+        job_id=job_id,
+        asset_id=asset_id,
+    )
+
+    return FileResponse(
+        path=asset["filePath"],
+        media_type=asset["mimeType"],
+        filename=asset["filename"],
+        headers={
+            "Cache-Control": "no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
+
+
+# ============================================================================
+# Internal Worker Result Delivery
+# ============================================================================
+
+@app.post(
+    "/internal/jobs/{job_id}/result",
+    dependencies=[
+        Depends(verify_internal_worker_token),
+    ],
+)
+async def upload_internal_worker_result(
+    job_id: str,
+    file: UploadFile = File(...),
+    connection: psycopg.Connection = Depends(get_connection),
+):
+    """Accept one generated result file from the remote worker."""
+
+    result = await ingest_worker_result_upload(
+        connection,
+        job_id=job_id,
+        file=file,
+    )
+
+    connection.commit()
+    return result
+
+
 # ============================================================================
 # Upload and Storage System
 # ============================================================================

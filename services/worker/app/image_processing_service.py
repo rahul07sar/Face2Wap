@@ -20,18 +20,21 @@ from typing import Optional
 
 import psycopg
 
+from app.api_transfer_client import (
+    WorkerApiTransferError,
+    download_worker_asset,
+    upload_worker_result,
+)
 from app.face_swap_engine_base import FaceSwapEngineError
 from app.face_swap_engine_factory import get_face_swap_engine
 from app.socaity_face_swap_engine import (
     ImageFaceSwapError,
     prepare_worker_temp_image_path,
-    resolve_worker_upload_path,
 )
 from app.image_job_service import (
     ImageJobError,
     claim_image_swap_job,
 )
-from app.result_registry import register_worker_result
 
 
 # ============================================================================
@@ -120,6 +123,8 @@ def process_image_swap_job(
     """Process one queued image face-swap job from claim through completion."""
 
     generated_temp_path: Optional[Path] = None
+    source_path: Optional[Path] = None
+    target_path: Optional[Path] = None
 
     try:
         claimed_job = claim_image_swap_job(
@@ -129,12 +134,20 @@ def process_image_swap_job(
 
         connection.commit()
 
-        source_path = resolve_worker_upload_path(
-            claimed_job["sourceObjectPath"],
+        source_path = download_worker_asset(
+            job_id=job_id,
+            asset_id=claimed_job["sourceAssetId"],
+            filename=Path(
+                claimed_job["sourceObjectPath"],
+            ).name,
         )
 
-        target_path = resolve_worker_upload_path(
-            claimed_job["targetObjectPath"],
+        target_path = download_worker_asset(
+            job_id=job_id,
+            asset_id=claimed_job["targetAssetId"],
+            filename=Path(
+                claimed_job["targetObjectPath"],
+            ).name,
         )
 
         generated_temp_path = prepare_worker_temp_image_path(
@@ -166,15 +179,12 @@ def process_image_swap_job(
 
         connection.commit()
 
-        result = register_worker_result(
-            connection,
+        result = upload_worker_result(
             job_id=job_id,
-            source_path=generated_temp_path,
+            result_path=generated_temp_path,
             filename="face2wap-result.png",
             mime_type="image/png",
         )
-
-        connection.commit()
 
         return {
             **result,
@@ -187,6 +197,7 @@ def process_image_swap_job(
         ImageJobError,
         ImageFaceSwapError,
         ImageProcessingError,
+        WorkerApiTransferError,
         psycopg.Error,
         OSError,
         ValueError,
@@ -232,6 +243,16 @@ def process_image_swap_job(
         ) from error
 
     finally:
+        if source_path is not None:
+            source_path.unlink(
+                missing_ok=True,
+            )
+
+        if target_path is not None:
+            target_path.unlink(
+                missing_ok=True,
+            )
+
         if generated_temp_path is not None:
             generated_temp_path.unlink(
                 missing_ok=True,

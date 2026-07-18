@@ -21,13 +21,16 @@ from typing import Optional
 
 import psycopg
 
+from app.api_transfer_client import (
+    WorkerApiTransferError,
+    download_worker_asset,
+    upload_worker_result,
+)
 from app.config import settings
 from app.face_swap_engine_base import FaceSwapEngineError
 from app.face_swap_engine_factory import get_face_swap_engine
-from app.result_registry import register_worker_result
 from app.socaity_face_swap_engine import (
     ImageFaceSwapError,
-    resolve_worker_upload_path,
 )
 from app.video_job_service import (
     VideoJobError,
@@ -211,6 +214,8 @@ def process_video_swap_job(
     """Process one queued video face-swap job through completion."""
 
     generated_video_path: Optional[Path] = None
+    source_path: Optional[Path] = None
+    target_path: Optional[Path] = None
 
     try:
         claimed_job = claim_video_swap_job(
@@ -220,12 +225,20 @@ def process_video_swap_job(
 
         connection.commit()
 
-        source_path = resolve_worker_upload_path(
-            claimed_job["sourceObjectPath"],
+        source_path = download_worker_asset(
+            job_id=job_id,
+            asset_id=claimed_job["sourceAssetId"],
+            filename=Path(
+                claimed_job["sourceObjectPath"],
+            ).name,
         )
 
-        target_path = resolve_worker_upload_path(
-            claimed_job["targetObjectPath"],
+        target_path = download_worker_asset(
+            job_id=job_id,
+            asset_id=claimed_job["targetAssetId"],
+            filename=Path(
+                claimed_job["targetObjectPath"],
+            ).name,
         )
 
         generated_video_path = (
@@ -261,15 +274,12 @@ def process_video_swap_job(
 
         connection.commit()
 
-        result = register_worker_result(
-            connection,
+        result = upload_worker_result(
             job_id=job_id,
-            source_path=generated_video_path,
+            result_path=generated_video_path,
             filename="face2wap-result.mp4",
             mime_type="video/mp4",
         )
-
-        connection.commit()
 
         return {
             **result,
@@ -282,6 +292,7 @@ def process_video_swap_job(
         ImageFaceSwapError,
         VideoJobError,
         VideoProcessingError,
+        WorkerApiTransferError,
         psycopg.Error,
         OSError,
         ValueError,
@@ -327,6 +338,16 @@ def process_video_swap_job(
         ) from error
 
     finally:
+        if source_path is not None:
+            source_path.unlink(
+                missing_ok=True,
+            )
+
+        if target_path is not None:
+            target_path.unlink(
+                missing_ok=True,
+            )
+
         if generated_video_path is not None:
             generated_video_path.unlink(
                 missing_ok=True,
