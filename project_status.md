@@ -588,6 +588,135 @@ Status
 
 ---
 
+## Remote GPU Notes 🚧
+
+Current working direction
+
+- Local web runs on the developer machine.
+- Remote API runs on the GPU server.
+- Remote worker runs on the GPU server.
+- PostgreSQL is hosted on Supabase.
+- GPU host provider is Database Mart.
+- Storage is currently remote local-disk storage on the GPU box.
+
+Current remote host
+
+- Provider: Database Mart
+- OS: Ubuntu Server 20 LTS 64-bit
+- GPU verified: NVIDIA RTX A4000
+
+Fresh GPU server setup
+
+- Install Docker
+- Install NVIDIA Container Toolkit
+- Configure Docker GPU runtime
+- Verify GPU with `nvidia-smi`
+- Verify Docker GPU access with `docker run --rm --gpus all nvidia/cuda:12.6.0-base-ubuntu22.04 nvidia-smi`
+- Install `git`
+- Add GitHub deploy key for the private Face2Wap repository
+
+Remote repository path
+
+- `/root/face2wap`
+
+Remote worker image build
+
+```bash
+cd /root/face2wap
+docker build -t face2wap-worker-gpu \
+  --build-arg FACE2WAP_RUNTIME_VARIANT=gpu \
+  --build-arg FACE2WAP_INSTALL_FACEFUSION=1 \
+  --build-arg FACE2WAP_INSTALL_SOCAITY=0 \
+  --build-arg FACEFUSION_REF=3.7.1 \
+  -f services/worker/Dockerfile .
+```
+
+Remote worker runtime notes
+
+- Worker health port: `8001`
+- Worker env file: `/root/face2wap/.env.worker-smoke`
+- Current tuning being tested:
+- `FACEFUSION_EXECUTION_THREAD_COUNT=4`
+- `FACEFUSION_VIDEO_MEMORY_STRATEGY=tolerant`
+
+Remote worker run
+
+```bash
+docker rm -f face2wap-worker-gpu 2>/dev/null || true
+docker run -d \
+  --name face2wap-worker-gpu \
+  --gpus all \
+  --env-file /root/face2wap/.env.worker-smoke \
+  -p 8001:8001 \
+  -v /root/face2wap-storage:/app/storage \
+  -v face2wap_facefusion_assets:/opt/facefusion/.assets \
+  face2wap-worker-gpu
+```
+
+Remote worker checks
+
+```bash
+curl http://127.0.0.1:8001/health
+docker logs face2wap-worker-gpu --tail 100
+docker logs -f face2wap-worker-gpu
+docker stats face2wap-worker-gpu
+```
+
+Remote API image build
+
+```bash
+cd /root/face2wap
+docker build -t face2wap-api-remote -f services/api/Dockerfile .
+```
+
+Remote API runtime notes
+
+- API health port: `8000`
+- API env file: `/root/face2wap/.env.api-remote`
+- Required secret: `JOB_TOKEN_SECRET`
+- `DATABASE_URL` must use the working Supabase Session Pooler URL
+- If the DB password contains `#`, it must be URL-encoded as `%23`
+
+Remote API run
+
+```bash
+docker rm -f face2wap-api-remote 2>/dev/null || true
+docker run -d \
+  --name face2wap-api-remote \
+  --network host \
+  --env-file /root/face2wap/.env.api-remote \
+  -v /root/face2wap-storage:/app/storage \
+  face2wap-api-remote
+```
+
+Remote API checks
+
+```bash
+curl http://127.0.0.1:8000/health
+docker logs face2wap-api-remote --tail 100
+docker logs -f face2wap-api-remote
+```
+
+Local web note
+
+- Local web can point to the remote API using:
+- `NEXT_PUBLIC_API_BASE_URL=http://204.12.253.252:8000`
+- If port `3000` is busy, Next.js may automatically start on `3001`
+
+Current known remote blocker
+
+- Uploads are still being written/read through a local-storage contract.
+- The worker-side failure shows the DB row exists but the input asset is missing at runtime.
+- Current error shape:
+- `Worker input asset does not exist: job_<id>/source_face_image/<file>`
+- Next implementation step is to harden the upload-to-remote-storage handoff so the remote API and remote worker resolve the same physical file path.
+
+Status
+
+🚧 In Progress | Remote GPU API/worker are up, but remote upload/storage handoff still needs code hardening
+
+---
+
 # Phase 9 — Frontend 🚧
 
 ✅ Done

@@ -390,36 +390,18 @@ export default function UploadClient() {
         () => {
           setProcessingProgress(
             (currentProgress) => {
-              const progressCap =
-                processingState === "queued"
-                  ? Math.max(
-                      reportedProcessingProgress,
-                      10,
-                    )
-                  : Math.max(
-                      reportedProcessingProgress,
-                      20,
-                    );
-
-              if (
-                currentProgress >=
-                progressCap
-              ) {
-                return currentProgress;
-              }
-
               if (
                 currentProgress <
-                progressCap
+                reportedProcessingProgress
               ) {
                 return Math.min(
-                  progressCap,
+                  reportedProcessingProgress,
                   currentProgress +
                     Math.max(
                       1,
                       Math.ceil(
                         (
-                          progressCap -
+                          reportedProcessingProgress -
                           currentProgress
                         ) / 4,
                       ),
@@ -427,16 +409,28 @@ export default function UploadClient() {
                 );
               }
 
-              return Math.min(
-                progressCap,
-                currentProgress + 1,
-              );
+              if (
+                processingState === "queued"
+              ) {
+                return Math.min(
+                  19,
+                  currentProgress + 1,
+                );
+              }
+
+              if (
+                currentProgress < 99
+              ) {
+                return currentProgress + 1;
+              }
+
+              return currentProgress;
             },
           );
         },
         processingState === "queued"
-          ? 500
-          : 250,
+          ? 700
+          : 1200,
       );
 
     return () => {
