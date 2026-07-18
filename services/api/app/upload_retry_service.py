@@ -17,8 +17,8 @@ from datetime import datetime, timedelta, timezone
 import psycopg
 from fastapi import HTTPException, status
 
-from app.config import settings
 from app.storage.local_writer import resolve_local_upload_path
+from app.upload_service import get_upload_expiry_minutes
 from app.video_upload_service import (
     reset_video_upload_metadata,
 )
@@ -74,7 +74,7 @@ def retry_failed_upload(
     target_path.unlink(missing_ok=True)
 
     upload_expires_at = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.upload_url_expiry_minutes
+        minutes=get_upload_expiry_minutes(asset["asset_type"])
     )
 
     with connection.cursor() as cursor:

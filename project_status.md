@@ -55,9 +55,10 @@ Worker
 - Python GPU Worker
 - Local CPU-compatible worker mode for development
 
-GPU
+GPU (production hosted at)
 - https://www.databasemart.com/
 - Worker is hosted here only web + API in local (check)
+- login: ssh administrator@204.12.253.252 , enter password, for sudo: sudo -i, enter password
 
 Storage
 - Local Storage (Development)

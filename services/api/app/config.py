@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     local_temp_dir: str = "storage/temp"
 
     upload_url_expiry_minutes: int = 15
+    video_upload_url_expiry_minutes: int = 180
     cleanup_batch_size: int = 100
     cleanup_temp_file_max_age_minutes: int = 60
 
