@@ -92,9 +92,6 @@ async def upload_job_asset(
     if asset["job_expires_at"] <= now:
         raise HTTPException(status_code=410, detail="Job has expired.")
 
-    if asset["upload_expires_at"] and asset["upload_expires_at"] <= now:
-        raise HTTPException(status_code=410, detail="Upload slot has expired.")
-
     if asset["upload_status"] not in {"PREPARED", "FAILED"}:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
