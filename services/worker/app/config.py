@@ -73,15 +73,15 @@ class Settings(BaseSettings):
     facefusion_log_level: str = "error"
     facefusion_keep_temp: bool = False
     facefusion_output_image_quality: int = 95
-    facefusion_process_timeout_seconds: int = 900
-    facefusion_video_process_timeout_seconds: int = 1800
+    facefusion_process_timeout_seconds: int = 3600
+    facefusion_video_process_timeout_seconds: int = 10800
 
     storage_provider: str = "local"
 
     local_upload_dir: str = "/app/storage/uploads"
     local_result_dir: str = "/app/storage/results"
     local_temp_dir: str = "/app/storage/temp"
-    api_transfer_timeout_seconds: int = 2100
+    api_transfer_timeout_seconds: int = 11100
 
     model_config = SettingsConfigDict(
         env_file=".env",

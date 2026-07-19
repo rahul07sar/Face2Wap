@@ -683,20 +683,24 @@ Minimum API env keys
 - `CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001`
 - `WORKER_BASE_URL=http://127.0.0.1:8001`
 - `WORKER_API_TOKEN=...`
+- `WORKER_REQUEST_TIMEOUT_SECONDS=11100`
 
 Minimum worker env keys
 
-DATABASE_URL=postgresql://postgres.gjhtknqwgskppyqjwfap:[Your password, for # replace with %23]@aws-0-ap-southeast-1.>
-WORKER_API_TOKEN=dev-worker-token
-FACE_SWAP_ENGINE=facefusion
-FACEFUSION_EXECUTION_PROVIDER=cuda
-FACEFUSION_EXECUTION_THREAD_COUNT=4
-FACEFUSION_VIDEO_MEMORY_STRATEGY=tolerant
-FACEFUSION_VIDEO_FACE_SWAPPER_MODEL=inswapper_128
-FACEFUSION_VIDEO_FACE_SWAPPER_PIXEL_BOOST=256x256
-FACEFUSION_OUTPUT_VIDEO_QUALITY=60
-FACEFUSION_OUTPUT_VIDEO_SCALE=0.5
-API_BASE_URL=http://204.12.253.252:8000
+- `DATABASE_URL=postgresql://postgres.gjhtknqwgskppyqjwfap:[password-with-#-encoded-as-%23]@aws-0-ap-southeast-1.pooler.supabase.com:5432/postgres`
+- `WORKER_API_TOKEN=dev-worker-token`
+- `FACE_SWAP_ENGINE=facefusion`
+- `FACEFUSION_EXECUTION_PROVIDER=cuda`
+- `FACEFUSION_EXECUTION_THREAD_COUNT=4`
+- `FACEFUSION_VIDEO_MEMORY_STRATEGY=tolerant`
+- `FACEFUSION_VIDEO_FACE_SWAPPER_MODEL=inswapper_128`
+- `FACEFUSION_VIDEO_FACE_SWAPPER_PIXEL_BOOST=256x256`
+- `FACEFUSION_OUTPUT_VIDEO_QUALITY=60`
+- `FACEFUSION_OUTPUT_VIDEO_SCALE=0.5`
+- `FACEFUSION_PROCESS_TIMEOUT_SECONDS=3600`
+- `FACEFUSION_VIDEO_PROCESS_TIMEOUT_SECONDS=10800`
+- `API_TRANSFER_TIMEOUT_SECONDS=11100`
+- `API_BASE_URL=http://204.12.253.252:8000`
 
 Remote repository path
 
@@ -723,6 +727,10 @@ Remote worker runtime notes
 - Current tuning being tested:
 - `FACEFUSION_EXECUTION_THREAD_COUNT=4`
 - `FACEFUSION_VIDEO_MEMORY_STRATEGY=tolerant`
+- Timeout tuning now required for long jobs:
+- `FACEFUSION_PROCESS_TIMEOUT_SECONDS=3600`
+- `FACEFUSION_VIDEO_PROCESS_TIMEOUT_SECONDS=10800`
+- `API_TRANSFER_TIMEOUT_SECONDS=11100`
 
 Remote worker run
 
@@ -762,6 +770,8 @@ Remote API runtime notes
 - Required secret: `JOB_TOKEN_SECRET`
 - `DATABASE_URL` must use the working Supabase Session Pooler URL
 - If the DB password contains `#`, it must be URL-encoded as `%23`
+- Long-running worker dispatches need:
+- `WORKER_REQUEST_TIMEOUT_SECONDS=11100`
 
 Remote API run
 
@@ -805,6 +815,10 @@ Current remote notes
 - The worker no longer depends on sharing the API container's upload path directly.
 - Long FaceFusion runs can keep the job busy for several minutes.
 - Worker-side processing progress now heartbeats forward during the long FaceFusion step instead of freezing at the initial `20%` or `30%` milestone.
+- If processing fails late around `70%` to `98%`, check timeout settings first:
+- worker FaceFusion timeout
+- worker result-upload timeout
+- API worker-request timeout
 
 Status
 
